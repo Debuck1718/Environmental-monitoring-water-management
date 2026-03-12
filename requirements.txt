@@ -4,5 +4,5 @@ PyYAML>=6.0.1
 pytest>=7.4.0
 pyserial>=3.5
 fastapi>=0.109.0
-uvicorn[standard]>=0.25.0# Requirements for Environmental Monitoring and Water Management System
+uvicorn[standard]>=0.25.0
 # Add libraries as development progresses

@@ -3,15 +3,13 @@ import os
 from datetime import datetime
 from typing import List, Tuple, Optional, Dict, Any
 
-import cv2
-import numpy as np
-
-
-def apply_roi_mask(frame: np.ndarray, roi: Optional[List[Tuple[int, int]]]) -> np.ndarray:
+def apply_roi_mask(frame: 'np.ndarray', roi: Optional[List[Tuple[int, int]]]) -> 'np.ndarray':
     """
     Apply a polygonal ROI mask to the frame. If roi is None or empty, returns frame unchanged.
     roi: list of (x, y) vertices.
     """
+    import cv2
+    import numpy as np
     if not roi:
         return frame
     mask = np.zeros(frame.shape[:2], dtype=np.uint8)
