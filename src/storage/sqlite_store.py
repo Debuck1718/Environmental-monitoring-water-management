@@ -57,6 +57,20 @@ class SQLiteStore:
             total_volume_liters REAL NOT NULL DEFAULT 0.0
         );
         """)
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL
+        );
+        """)
+        
+        # Insert default admin user if not exists
+        # Username: admin, Password: password
+        import bcrypt
+        default_pw = bcrypt.hashpw(b"password", bcrypt.gensalt()).decode('utf-8')
+        cur.execute("INSERT OR IGNORE INTO users (username, password_hash) VALUES (?, ?)", ("admin", default_pw))
+
         self._conn.commit()
 
     @staticmethod

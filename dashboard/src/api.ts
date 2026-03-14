@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = '/api';
 
 export interface EnvStats {
     ts: number;
@@ -75,33 +75,54 @@ export interface DashboardData {
 }
 
 
+const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
+    const token = localStorage.getItem('token');
+    const headers = {
+        ...options.headers,
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    };
+    return fetch(url, { ...options, headers });
+};
+
 export const fetchLatestStats = async (): Promise<DashboardData> => {
-    const response = await fetch(`${API_BASE_URL}/latest-stats`);
+    const response = await fetchWithAuth(`${API_BASE_URL}/latest-stats`);
     if (!response.ok) throw new Error('Failed to fetch stats');
     return response.json();
 };
 
 export const fetchHistory = async () => {
-    const response = await fetch(`${API_BASE_URL}/history`);
+    const response = await fetchWithAuth(`${API_BASE_URL}/history`);
     if (!response.ok) throw new Error('Failed to fetch history');
     return response.json();
 };
 
 export const fetchEnergyHistory = async () => {
-    const response = await fetch(`${API_BASE_URL}/energy-history`);
+    const response = await fetchWithAuth(`${API_BASE_URL}/energy-history`);
     if (!response.ok) throw new Error('Failed to fetch energy history');
     return response.json();
 };
 
 export const fetchDistributionLatest = async (): Promise<DistributionEvent[]> => {
-    const response = await fetch(`${API_BASE_URL}/distribution/latest`);
+    const response = await fetchWithAuth(`${API_BASE_URL}/distribution/latest`);
     if (!response.ok) throw new Error('Failed to fetch distribution status');
     return response.json();
 };
 
 export const fetchDistributionHistory = async (): Promise<DistributionHistory[]> => {
-    const response = await fetch(`${API_BASE_URL}/distribution/history`);
+    const response = await fetchWithAuth(`${API_BASE_URL}/distribution/history`);
     if (!response.ok) throw new Error('Failed to fetch distribution history');
+    return response.json();
+};
+
+export const systemControl = async (action: string): Promise<any> => {
+    const response = await fetchWithAuth(`${API_BASE_URL}/control/${action}`, { method: 'POST' });
+    if (!response.ok) throw new Error('Control action failed');
+    return response.json();
+};
+
+export const fetchForecast = async (): Promise<any> => {
+    const response = await fetchWithAuth(`${API_BASE_URL}/forecast`);
+    if (!response.ok) throw new Error('Forecast fetch failed');
     return response.json();
 };
 

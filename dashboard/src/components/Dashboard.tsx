@@ -44,7 +44,7 @@ const Dashboard: React.FC = () => {
 
     if (loading && !data.env && !data.water) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-[#0d1117] text-white">
+            <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-[#0d1117] text-slate-900 dark:text-white">
                 <div className="flex flex-col items-center gap-4">
                     <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
                     <p className="text-gray-400 animate-pulse">Initializing Data Streams...</p>
@@ -55,7 +55,7 @@ const Dashboard: React.FC = () => {
 
     if (error && !data.env && !data.water) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-[#0d1117] text-white p-6 text-center">
+            <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-[#0d1117] text-slate-900 dark:text-white p-6 text-center">
                 <div className="max-w-md glass-card p-8 border-red-500/20">
                     <AlertTriangle className="text-red-500 mx-auto mb-4" size={48} />
                     <h2 className="text-2xl font-bold mb-2">Connection Error</h2>
@@ -88,7 +88,7 @@ const Dashboard: React.FC = () => {
             {/* Header */}
             <header className="flex justify-between items-end">
                 <div>
-                    <h2 className="text-3xl font-black text-white flex items-center gap-3">
+                    <h2 className="text-3xl font-black text-slate-900 dark:text-white flex items-center gap-3">
                         <Activity className="text-emerald-400" size={32} />
                         System Overview
                     </h2>
@@ -113,8 +113,8 @@ const Dashboard: React.FC = () => {
                             </div>
                         </div>
                     )}
-                    <div className="px-4 py-2 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 text-xs font-bold flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                    <div className="px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                         LIVE
                     </div>
                 </div>

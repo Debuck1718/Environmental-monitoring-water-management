@@ -1,1 +1,1 @@
-{"telemetry": {"flow_lpm": 10.0}}
+{"ts": 1773317673, "state": "BACKWASH", "telemetry": {"net_load_pct": 25, "bottle_clog_pct": 15, "flow_lpm": 10.0}, "actuators": {"gears_active": false, "backwash_on": false, "pump_active": true}, "last_action": {"type": "FILTER_START", "ts": 1773317670}}

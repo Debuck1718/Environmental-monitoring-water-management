@@ -20,7 +20,7 @@ const WaterGauge: React.FC<WaterGaugeProps> = ({ title, value, min, max, unit, c
 
     return (
         <div className="glass-card p-6 flex flex-col items-center">
-            <h4 className="text-gray-400 text-sm font-medium mb-4 self-start">{title}</h4>
+            <h4 className="text-slate-500 dark:text-gray-400 text-sm font-medium mb-4 self-start">{title}</h4>
             <div style={{ width: '100%', height: 180 }}>
                 <ResponsiveContainer>
                     <PieChart>
@@ -41,14 +41,14 @@ const WaterGauge: React.FC<WaterGaugeProps> = ({ title, value, min, max, unit, c
                             <Label
                                 value={`${value}${unit}`}
                                 position="center"
-                                fill="white"
+                                fill="hsl(var(--text-main))"
                                 style={{ fontSize: '24px', fontWeight: 'bold' }}
                             />
                         </Pie>
                     </PieChart>
                 </ResponsiveContainer>
             </div>
-            <div className="flex justify-between w-full mt-2 text-xs text-gray-500">
+            <div className="flex justify-between w-full mt-2 text-xs text-slate-400 dark:text-gray-500">
                 <span>{min}{unit}</span>
                 <span>{max}{unit}</span>
             </div>

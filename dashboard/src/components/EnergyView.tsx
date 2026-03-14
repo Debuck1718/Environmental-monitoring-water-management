@@ -35,28 +35,28 @@ const EnergyView: React.FC = () => {
     return (
         <div className="p-8 space-y-8 animate-in zoom-in-95 duration-500">
             <header>
-                <h2 className="text-3xl font-black text-white flex items-center gap-3">
-                    <Zap className="text-amber-400" size={32} />
+                <h2 className="text-3xl font-black text-slate-900 dark:text-white flex items-center gap-3">
+                    <Zap className="text-amber-500 dark:text-amber-400" size={32} />
                     Energy Analytics Hub
                 </h2>
-                <p className="text-slate-400 mt-2 uppercase tracking-widest text-xs">Hydro-Electric Generation & Efficiency Monitoring</p>
+                <p className="text-slate-500 dark:text-slate-400 mt-2 uppercase tracking-widest text-xs">Hydro-Electric Generation & Efficiency Monitoring</p>
             </header>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {stats.map((stat, i) => (
-                    <div key={i} className="glass-card p-6 border-white/5 hover:border-white/10 transition-colors">
+                    <div key={i} className="glass-card p-6 border-slate-200 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10 transition-colors">
                         <stat.icon className={`${stat.color} mb-3`} size={24} />
                         <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{stat.label}</p>
-                        <p className="text-2xl font-black text-white mt-1">{stat.value}</p>
+                        <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">{stat.value}</p>
                     </div>
                 ))}
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
                 <div className="xl:col-span-2 glass-card p-8 min-h-[450px]">
-                    <h3 className="text-xl font-bold text-white mb-8 flex items-center justify-between">
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-8 flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                             <TrendingUp className="text-amber-400" size={20} />
+                             <TrendingUp className="text-amber-500 dark:text-amber-400" size={20} />
                              Generation Trends
                         </div>
                         <div className="flex gap-2">
@@ -86,13 +86,13 @@ const EnergyView: React.FC = () => {
                 </div>
 
                 <div className="glass-card p-8 flex flex-col">
-                    <h3 className="text-xl font-bold text-white mb-8 flex items-center gap-2">
-                         <Battery className="text-emerald-400" size={20} />
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-8 flex items-center gap-2">
+                         <Battery className="text-emerald-500 dark:text-emerald-400" size={20} />
                          Efficiency Status
                     </h3>
                     <div className="flex-1 flex flex-col items-center justify-center relative">
-                        {/* Circular Progress Mockup */}
-                        <div className="w-48 h-48 rounded-full border-[12px] border-slate-800 flex items-center justify-center relative">
+                        {/* Real-time Health UI */}
+                        <div className="w-48 h-48 rounded-full border-[12px] border-slate-100 dark:border-slate-800 flex items-center justify-center relative">
                             <svg className="absolute inset-0 w-full h-full -rotate-90">
                                 <circle 
                                     cx="96" cy="96" r="84" 
@@ -104,18 +104,18 @@ const EnergyView: React.FC = () => {
                                 />
                             </svg>
                             <div className="text-center">
-                                <p className="text-4xl font-black text-white">{data?.health?.score || '--'}%</p>
+                                <p className="text-4xl font-black text-slate-900 dark:text-white">{data?.health?.score || '--'}%</p>
                                 <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mt-1">Efficiency</p>
                             </div>
                         </div>
                         <div className="mt-8 space-y-4 w-full">
                             <div className="flex justify-between items-center text-xs">
-                                <span className="text-slate-400">Turbine RPM</span>
-                                <span className="text-white font-mono">{chartData[chartData.length-1]?.rpm || '--'}</span>
+                                <span className="text-slate-500 dark:text-slate-400">Turbine RPM</span>
+                                <span className="text-slate-900 dark:text-white font-mono">{chartData[chartData.length-1]?.rpm || '--'}</span>
                             </div>
                             <div className="flex justify-between items-center text-xs">
-                                <span className="text-slate-400">Flow/Power Ratio</span>
-                                <span className="text-emerald-400 font-mono">OPTIMAL</span>
+                                <span className="text-slate-500 dark:text-slate-400">Flow/Power Ratio</span>
+                                <span className="text-emerald-600 dark:text-emerald-400 font-mono">OPTIMAL</span>
                             </div>
                         </div>
                     </div>

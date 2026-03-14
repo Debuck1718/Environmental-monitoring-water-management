@@ -1,26 +1,23 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700&display=swap');
-
 
 :root {
-  /* Color Palette - HSL Tailored */
-  --bg-main: 222 47% 11%;
-  --bg-card: 222 47% 15%;
-  --bg-glass: 222 47% 15% / 0.7;
+  /* Color Palette - HSL Tailored (Light Mode Default) */
+  --bg-main: 210 40% 98%;
+  --bg-card: 0 0% 100%;
+  --bg-glass: 0 0% 100% / 0.7;
 
-  --primary: 199 89% 48%;
-  /* Neon Blue */
-  --secondary: 162 84% 39%;
-  /* Emerald Green */
-  --accent: 263 70% 50%;
-  /* Purple */
+  --primary: 199 89% 48%; /* Neon Blue */
+  --secondary: 162 84% 39%; /* Emerald Green */
+  --accent: 263 70% 50%; /* Purple */
 
-  --text-main: 210 40% 98%;
-  --text-muted: 215 20% 65%;
-  --border: 217 33% 17%;
+  --text-main: 222 47% 11%;
+  --text-muted: 215 20% 45%;
+  --border: 214 32% 91%;
 
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
@@ -30,7 +27,7 @@
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: dark;
+  color-scheme: light;
   color: hsl(var(--text-main));
   background-color: hsl(var(--bg-main));
 
@@ -38,6 +35,22 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.dark {
+  --bg-main: 222 47% 11%;
+  --bg-card: 222 47% 15%;
+  --bg-glass: 222 47% 15% / 0.7;
+
+  --primary: 199 89% 48%;
+  --secondary: 162 84% 39%;
+  --accent: 263 70% 50%;
+
+  --text-main: 210 40% 98%;
+  --text-muted: 215 20% 65%;
+  --border: 217 33% 17%;
+
+  color-scheme: dark;
 }
 
 body {
@@ -112,7 +125,7 @@ h4 {
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.5s ease forwards;
+  animation: fadeIn 0.4s ease forwards;
 }
 
 .animate-slide-up {
@@ -137,6 +150,7 @@ h4 {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -148,6 +162,11 @@ h4 {
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }

@@ -24,7 +24,7 @@ def draw_overlays(frame, result, roi: Optional[List[Tuple[int, int]]] = None):
     base = tree["baseline_green_ratio"]
     base_text = f" (base {base*100:.1f}%)" if base is not None else ""
     cv2.putText(frame, f"Green: {tree['green_ratio']*100:.1f}%{base_text}",
-                (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (50, 200, 50), 2)
+                (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (50, 200, 50), 4)
 
     # Excavation boxes
     for (x, y, w, h) in result["excavation"]["excavation_regions"]:
