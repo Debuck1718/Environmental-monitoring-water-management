@@ -58,8 +58,8 @@ const TelemetryTable: React.FC<TelemetryTableProps> = ({ data, type }) => {
                     </>
                   ) : (
                     <>
-                      <td className="px-6 py-4 text-slate-400 font-mono">{row.turbidity_ntu.toFixed(2)}</td>
-                      <td className="px-6 py-4 text-slate-400 font-mono">{row.ph_value.toFixed(2)}</td>
+                      <td className="px-6 py-4 text-slate-400 font-mono">{row.turbidity_ntu?.toFixed(2) || '0.00'}</td>
+                      <td className="px-6 py-4 text-slate-400 font-mono">{row.ph_value?.toFixed(2) || '0.00'}</td>
                       <td className="px-6 py-4">
                         <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold ${
                           row.dual_stream_verdict === 'CRITICAL' ? 'text-red-400' : 'text-emerald-400'

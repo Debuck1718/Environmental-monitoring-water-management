@@ -5,8 +5,6 @@ import {
   Droplets, 
   Zap, 
   Settings2, 
-  ChevronLeft, 
-  ChevronRight,
   Shield,
   Sun,
   Moon,
@@ -20,8 +18,6 @@ export type ViewType = 'overview' | 'environmental' | 'water' | 'energy' | 'cont
 interface SidebarProps {
   currentView: ViewType;
   onViewChange: (view: ViewType) => void;
-  isExpanded: boolean;
-  toggleExpanded: () => void;
   onLogout?: () => void;
 }
 
@@ -34,27 +30,23 @@ const navItems = [
   { id: 'asaase' as ViewType, label: 'ASAASE Robots', icon: Bot },
 ];
 
-const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isExpanded, toggleExpanded, onLogout }) => {
+const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, onLogout }) => {
   const { theme, setTheme } = useTheme();
 
   return (
-    <motion.aside 
-      animate={{ width: isExpanded ? 260 : 80 }}
-      className="h-screen bg-slate-100/50 dark:bg-slate-900/50 backdrop-blur-2xl border-r border-slate-200 dark:border-white/5 flex flex-col sticky top-0"
+    <aside 
+      className="w-64 h-screen bg-[#0d1117]/80 backdrop-blur-3xl border-r border-white/5 flex flex-col sticky top-0 z-50 shadow-2xl"
     >
-      <div className="p-6 flex items-center gap-3 overflow-hidden">
-        <div className="min-w-[32px] w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.3)]">
-          <Shield className="text-white" size={20} />
+      <div className="p-8 flex flex-col gap-1 overflow-hidden">
+        <div className="flex items-center gap-3">
+           <div className="min-w-[32px] w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.4)] border border-emerald-400/50">
+             <Shield className="text-white" size={24} />
+           </div>
+           <span className="font-black text-2xl text-white tracking-tighter whitespace-nowrap italic">
+             ECOGUARD<span className="text-emerald-500">HQ</span>
+           </span>
         </div>
-        {isExpanded && (
-          <motion.span 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="font-black text-xl text-slate-800 dark:text-white tracking-tighter whitespace-nowrap"
-          >
-            ECOGUARD<span className="text-emerald-500">HQ</span>
-          </motion.span>
-        )}
+        <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mt-2">Tactical Intelligence Hub</span>
       </div>
 
       <nav className="flex-1 px-4 py-8 space-y-2">
@@ -73,15 +65,9 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isExpanded
               }`}
             >
               <Icon size={22} className={isActive ? 'text-emerald-400' : 'group-hover:scale-110 transition-transform'} />
-              {isExpanded && (
-                <motion.span 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="font-medium whitespace-nowrap"
-                >
-                  {item.label}
-                </motion.span>
-              )}
+              <span className="font-black tracking-widest text-xs uppercase group-hover:translate-x-1 transition-transform">
+                {item.label}
+              </span>
               {isActive && (
                 <motion.div 
                   layoutId="active-pill"
@@ -106,17 +92,11 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isExpanded
             className="w-full h-10 flex items-center justify-center gap-2 rounded-lg bg-red-500/10 text-red-500 dark:text-red-400 hover:bg-red-500/20 transition-colors"
           >
             <Shield size={16} />
-            {isExpanded && <span className="font-bold tracking-widest text-[10px] uppercase">Logout</span>}
+            <span className="font-bold tracking-widest text-[10px] uppercase">Logout</span>
           </button>
         )}
-        <button 
-          onClick={toggleExpanded}
-          className="w-full h-10 flex items-center justify-center rounded-lg bg-slate-200/50 dark:bg-white/5 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
-        >
-          {isExpanded ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
-        </button>
       </div>
-    </motion.aside>
+    </aside>
   );
 };
 

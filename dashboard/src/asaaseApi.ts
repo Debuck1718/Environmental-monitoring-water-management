@@ -17,7 +17,35 @@ export interface RobotStatus {
   critical_count_24h: number;
 }
 
+export type ControlMode = 'MANUAL' | 'SEMI_AUTO' | 'FULLY_AUTO';
+
+export interface RobotSettings {
+  robot_id: string;
+  control_mode: ControlMode;
+  last_command?: string;
+  last_command_ts?: number;
+  pending_action?: string;
+  pending_action_ts?: number;
+}
+
+export interface BaseSettings {
+  operation_mode: ControlMode;
+}
+
+export interface PendingApproval {
+  id: number;
+  robot_id: string;
+  action_type: string;
+  severity: string;
+  lat: number;
+  lon: number;
+  created_at: number;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'EXPIRED';
+}
+
+
 export interface GroundTelemetry {
+
   id: number;
   ts: number;
   robot_id: string;
@@ -137,3 +165,77 @@ export const uploadAquaRoute = async (robot_id: string, waypoints: {lat: number,
   });
   return res.json();
 };
+
+export const fetchControlSettings = async (robotId: string): Promise<RobotSettings> => {
+  const res = await fetch(`${API_BASE}/control/settings/${robotId}`);
+  return res.json();
+};
+
+export const updateControlMode = async (robot_id: string, mode: ControlMode) => {
+  const headers: HeadersInit = { 'Content-Type': 'application/json' };
+  const auth = getAuthHeader();
+  if (auth.Authorization) {
+    (headers as any).Authorization = auth.Authorization;
+  }
+  const res = await fetch(`${API_BASE}/control/mode`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ robot_id, mode })
+  });
+  return res.json();
+};
+
+export const sendManualCommand = async (robot_id: string, command: string) => {
+  const headers: HeadersInit = { 'Content-Type': 'application/json' };
+  const auth = getAuthHeader();
+  if (auth.Authorization) {
+    (headers as any).Authorization = auth.Authorization;
+  }
+  const res = await fetch(`${API_BASE}/control/manual`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ robot_id, command })
+  });
+  return res.json();
+};
+
+export const fetchBaseSettings = async (): Promise<BaseSettings> => {
+
+  const res = await fetch(`${API_BASE}/base/settings`);
+  return res.json();
+};
+
+export const updateBaseMode = async (mode: ControlMode) => {
+  const headers: HeadersInit = { 'Content-Type': 'application/json' };
+  const auth = getAuthHeader();
+  if (auth.Authorization) {
+    (headers as any).Authorization = auth.Authorization;
+  }
+  const res = await fetch(`${API_BASE}/base/mode`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ mode })
+  });
+  return res.json();
+};
+
+export const fetchPendingApprovals = async (): Promise<PendingApproval[]> => {
+  const res = await fetch(`${API_BASE}/control/approvals`);
+  return res.json();
+};
+
+export const approveAction = async (approval_id: number, action: 'APPROVED' | 'REJECTED') => {
+  const headers: HeadersInit = { 'Content-Type': 'application/json' };
+  const auth = getAuthHeader();
+  if (auth.Authorization) {
+    (headers as any).Authorization = auth.Authorization;
+  }
+  const res = await fetch(`${API_BASE}/control/approve`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ approval_id, action })
+  });
+  return res.json();
+};
+
+

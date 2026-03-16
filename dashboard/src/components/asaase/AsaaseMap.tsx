@@ -38,7 +38,7 @@ const AsaaseMap: React.FC<AsaaseMapProps> = ({ groundPos, aquaPos, groundHeatmap
   const center: [number, number] = [6.5, -1.5];
 
   return (
-    <div className="h-[500px] w-full rounded-2xl overflow-hidden border border-white/5">
+    <div className="h-full w-full rounded-2xl overflow-hidden border border-white/5">
       <MapContainer center={center} zoom={7} style={{ height: '100%', width: '100%' }}>
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'

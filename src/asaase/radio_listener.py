@@ -11,8 +11,10 @@ from src.asaase.reports import generate_report
 
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.json")
 
-# Shared state for health monitoring
+# Shared state for health monitoring and dispatch
 robot_last_seen = {} # {robot_id: {"ts": float, "battery": int}}
+command_queues = {"GROUND": [], "AQUA": []} # {prefix: [command_string, ...]}
+queue_lock = threading.Lock()
 
 def load_config():
     with open(CONFIG_PATH, 'r') as f:
@@ -88,10 +90,19 @@ def listen_serial(port, baud_rate, robot_prefix):
     config = load_config()
     while True:
         try:
-            with serial.Serial(port, baud_rate, timeout=1) as ser:
+            with serial.Serial(port, baud_rate, timeout=0.1) as ser:
                 print(f"Started ASAASE listener on {port} for {robot_prefix}...")
                 while True:
-                    line = ser.readline().decode('utf-8').strip()
+                    # 1. Check for outgoing commands
+                    with queue_lock:
+                        if command_queues[robot_prefix]:
+                            cmd = command_queues[robot_prefix].pop(0)
+                            ser.write(cmd.encode() + b'\n')
+                            print(f"RADIO DISPATCH [{robot_prefix}] -> {cmd}")
+                            time.sleep(0.1) # Small gap
+
+                    # 2. Read incoming telemetry
+                    line = ser.readline().decode('utf-8', errors='ignore').strip()
                     if line:
                         try:
                             packet_data = json.loads(line)
@@ -102,10 +113,20 @@ def listen_serial(port, baud_rate, robot_prefix):
                                 elif robot_prefix == "AQUA":
                                     handle_aqua_packet(packet_data, config)
                         except json.JSONDecodeError:
+                            # Might be echoes or non-JSON noise
+                            if not line.startswith('{'): continue
                             print(f"Malformed ASAASE packet on {port}: {line}")
         except Exception as e:
             print(f"ASAASE Serial Error on {port}: {e}. Retrying in 10s...")
             time.sleep(10)
+
+def send_radio_command(robot_id: str, command: str):
+    """Adds a command to the appropriate radio queue for dispatch."""
+    prefix = "GROUND" if "GROUND" in robot_id else "AQUA"
+    # Format as JSON for the robot firmware to parse easily
+    cmd_packet = json.dumps({"robot_id": robot_id, "command": command})
+    with queue_lock:
+        command_queues[prefix].append(cmd_packet)
 
 def start_radio_listener():
     config = load_config()

@@ -2,8 +2,9 @@ from flask import Blueprint, jsonify, request
 import os
 import json
 import time
-from src.asaase.db import get_db_connection, save_waypoints
-from src.asaase.radio_listener import robot_last_seen
+from src.asaase.db import get_db_connection, save_waypoints, get_robot_settings, set_robot_mode, set_robot_manual_command
+from src.asaase.radio_listener import robot_last_seen, send_radio_command
+
 
 asaase_bp = Blueprint('asaase', __name__)
 
@@ -122,7 +123,8 @@ def post_ground_waypoints():
     robot_id = data.get('robot_id')
     waypoints = data.get('waypoints', [])
     save_waypoints(robot_id, waypoints)
-    # Simulation: Normally this would send via serial
+    # Send waypoints over radio
+    send_radio_command(robot_id, f"WAYPOINTS:{json.dumps(waypoints)}")
     print(f"Waypoints sent to {robot_id}: {waypoints}")
     return jsonify({"status": "success"})
 
@@ -132,5 +134,65 @@ def post_aqua_route():
     robot_id = data.get('robot_id')
     waypoints = data.get('waypoints', [])
     save_waypoints(robot_id, waypoints)
+    # Send route over radio
+    send_radio_command(robot_id, f"ROUTE:{json.dumps(waypoints)}")
     print(f"Route sent to {robot_id}: {waypoints}")
     return jsonify({"status": "success"})
+
+@asaase_bp.route('/control/settings/<robot_id>', methods=['GET'])
+def get_control_settings(robot_id):
+    from src.asaase.db import get_robot_settings
+    return jsonify(get_robot_settings(robot_id))
+
+@asaase_bp.route('/control/mode', methods=['POST'])
+def post_control_mode():
+    data = request.json
+    robot_id = data.get('robot_id')
+    mode = data.get('mode')
+    if mode not in ['MANUAL', 'SEMI_AUTO', 'FULLY_AUTO']:
+        return jsonify({"error": "Invalid mode"}), 400
+    from src.asaase.db import set_robot_mode
+    set_robot_mode(robot_id, mode)
+    return jsonify({"status": "success", "mode": mode})
+
+@asaase_bp.route('/control/manual', methods=['POST'])
+def post_control_manual():
+    data = request.json
+    robot_id = data.get('robot_id')
+    command = data.get('command')
+    from src.asaase.db import get_robot_settings, set_robot_manual_command
+    settings = get_robot_settings(robot_id)
+    if settings['control_mode'] == 'FULLY_AUTO':
+        return jsonify({"error": "Robot is in Fully Autonomous mode. Override not permitted."}), 403
+    set_robot_manual_command(robot_id, command)
+    send_radio_command(robot_id, command)
+    print(f"MANUAL COMMAND SENT TO {robot_id}: {command}")
+    return jsonify({"status": "success", "command": command})
+
+# --- New BASE & Approval Endpoints ---
+
+@asaase_bp.route('/base/settings', methods=['GET'])
+def get_base_settings():
+    from src.asaase.db import get_base_mode
+    return jsonify({"operation_mode": get_base_mode()})
+
+@asaase_bp.route('/base/mode', methods=['POST'])
+def update_base_mode():
+    data = request.json
+    from src.asaase.db import set_base_mode
+    set_base_mode(data['mode'])
+    return jsonify({"status": "success"})
+
+@asaase_bp.route('/control/approvals', methods=['GET'])
+def list_approvals():
+    from src.asaase.db import get_pending_approvals
+    return jsonify(get_pending_approvals())
+
+@asaase_bp.route('/control/approve', methods=['POST'])
+def approve_action():
+    data = request.json # {approval_id: X, action: 'APPROVED'|'REJECTED'}
+    from src.asaase.db import update_approval_status
+    update_approval_status(data['approval_id'], data['action'])
+    return jsonify({"status": "success"})
+
+

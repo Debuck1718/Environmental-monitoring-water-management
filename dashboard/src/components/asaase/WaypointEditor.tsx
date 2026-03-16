@@ -42,7 +42,7 @@ const WaypointEditor: React.FC<WaypointEditorProps> = ({ waypoints, onClear, onU
                   {idx + 1}
                 </span>
                 <span className="text-xs text-slate-400 font-mono">
-                  {wp.lat.toFixed(6)}, {wp.lon.toFixed(6)}
+                  {wp.lat?.toFixed(6) || '0.000000'}, {wp.lon?.toFixed(6) || '0.000000'}
                 </span>
               </div>
               <List size={14} className="text-slate-600" />

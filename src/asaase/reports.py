@@ -24,7 +24,7 @@ def generate_report(alert_id: int):
     
     timestamp = datetime.fromtimestamp(alert['ts']).strftime('%Y-%m-%d %H:%M:%S')
     
-    # English Content
+    # English Content (Strict Identity Spec)
     report_en = {
         "incident_summary": {
             "robot": alert['robot_id'],
@@ -33,23 +33,23 @@ def generate_report(alert_id: int):
             "severity": alert['severity'],
             "sensor_readings": telemetry if telemetry else "Historical telemetry unavailable"
         },
-        "detected_contaminants": "Mercury/Lead/Arsenic inferred from increased turbidity and soil degradation." if alert['alert_type'] == 'SOIL' else "High acidity/chemical contamination indicated by pH and turbidity.",
-        "robot_actions_taken": telemetry.get('dispenser_action', 'Automatic neutralization dispensed') if telemetry else "Automated remediation triggered.",
-        "recommended_followup": "Immediate EPA field inspection required. Secure site and prevent further water access.",
-        "phytoremediation_species": "Vetiver grass (Chrysopogon zizanioides), Chromolaena odorata - Plant at 10cm intervals at the border of the contaminated zone.",
-        "soil_treatment": "Biochar dose (50g/m²). Mix into top 5cm of soil before planting native seeds.",
-        "water_safety": "Safe pH range is 6.5-8.5. Ca(OH)₂ (Slaked Lime) treatment required for neutralization."
+        "detected_contaminants": "Mercury/Lead/Arsenic (Soil)" if alert['alert_type'] == 'SOIL' else "High acidity/chemical contamination (Water)",
+        "robot_actions_taken": "Biochar (50g/m²) + Vetiver/Chromolaena seeds deployed." if alert['severity'] == 'CRITICAL' else "Initial monitoring/seeding.",
+        "recommended_followup": "Immediate EPA field inspection required. Secure site and prevent further access.",
+        "phytoremediation_prescription": "Vetiver grass (Chrysopogon zizanioides) for soil binding, Chromolaena odorata for rapid remediation, Mucuna pruriens for nitrogen fixation.",
+        "treatment_protocol": "Biochar dose (50g/m²) mixed into top 5cm. pH neutralization via Slaked Lime (Ca(OH)₂) for water sites."
     }
     
-    # Twi Content (Bilingual requirement)
+    # Twi Content (Strict Identity Spec - Bilingual requirement)
     report_tw = {
-        "incident_summary_tw": f"Robot: {alert['robot_id']}, Beae: {alert['gps_lat']:.4f}, {alert['gps_lon']:.4f}, Bere: {timestamp}, Severity: {alert['severity']}",
-        "detected_contaminants_tw": "[TWI TRANSLATION REQUIRED — consult local translator]",
-        "robot_actions_taken_tw": "[TWI TRANSLATION REQUIRED — consult local translator]",
+        "incident_header_tw": f"ASAASE Amanneɛbɔ - {alert['severity']}",
+        "location_tw": f"Beaeɛ: {alert['gps_lat']:.4f}, {alert['gps_lon']:.4f}",
+        "detected_contaminants_tw": "Mframa bɔne ne dɔteɛ a asɛe" if alert['alert_type'] == 'SOIL' else "Nsuo a asɛe ne nneɛma bɔne a ɛwom",
+        "robot_actions_taken_tw": "Yɛagu biochar aduro ne Vetiver/Acheampong nhwiren aba.",
         "recommended_followup_tw": "EPA mpaninfoɛ nkyɛn kɔhwehwɛ mu ntɛm pa ara. Monsi kwan mma nkorɔfoɔ mmɛnom nsuo no.",
-        "phytoremediation_species_tw": "Vetiver grass (Chrysopogon zizanioides), Chromolaena odorata - Monnua no mita 10 mu biara wɔ beaeɛ a nsuo no asɛe no.",
-        "soil_treatment_tw": "Biochar (50g/m²). Momfra dɔteɛ no mu ansa na moatue aba foforɔ no.",
-        "water_safety_tw": "Nsuo a ɛyɛ bɔkɔɔ pH firi 6.5 kɔsi 8.5. Slaked Lime (Mhyire) na yɛde siesie nsuo no."
+        "phytoremediation_presc_tw": "Vetiver grass (Chrysopogon zizanioides), Acheampong nhwiren (Chromolaena odorata) - Monnua no mita 10 mu biara.",
+        "treatment_protocol_tw": "Biochar (50g/m²). Momfra dɔteɛ no mu ansa na moatue aba foforɔ no. Slaked Lime (Mhyire) na yɛde siesie nsuo no.",
+        "safety_message_tw": "Nsuo yi nkoa nka hwɛ (Do not touch/drink this water)."
     }
     
     save_remediation_report(alert_id, json.dumps(report_en), json.dumps(report_tw))

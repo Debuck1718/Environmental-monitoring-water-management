@@ -89,6 +89,43 @@ def init_asaase_db():
     )
     """)
     
+    # Robot Settings (Control Modes)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS robot_settings (
+        robot_id TEXT PRIMARY KEY,
+        control_mode TEXT NOT NULL DEFAULT 'FULLY_AUTO',
+        last_command TEXT,
+        last_command_ts REAL,
+        pending_action TEXT,
+        pending_action_ts REAL
+    )
+    """)
+    
+    # Base Settings
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS base_settings (
+        id INTEGER PRIMARY KEY,
+        operation_mode TEXT NOT NULL DEFAULT 'FULLY_AUTO'
+    )
+    """)
+    cursor.execute("INSERT OR IGNORE INTO base_settings (id, operation_mode) VALUES (1, 'FULLY_AUTO')")
+
+    # Pending Approvals
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS pending_approvals (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        robot_id TEXT NOT NULL,
+        action_type TEXT NOT NULL,
+        severity TEXT,
+        lat REAL,
+        lon REAL,
+        created_at REAL NOT NULL,
+        status TEXT DEFAULT 'PENDING' -- PENDING, APPROVED, REJECTED, EXPIRED
+    )
+    """)
+
+
+    
     conn.commit()
     conn.close()
 
@@ -170,3 +207,69 @@ def save_waypoints(robot_id, waypoints):
         """, (robot_id, idx, wp['lat'], wp['lon']))
     conn.commit()
     conn.close()
+
+def get_robot_settings(robot_id):
+    conn = get_db_connection()
+    row = conn.execute("SELECT * FROM robot_settings WHERE robot_id = ?", (robot_id,)).fetchone()
+    conn.close()
+    if row:
+        return dict(row)
+    return {"robot_id": robot_id, "control_mode": "FULLY_AUTO", "last_command": None, "last_command_ts": 0}
+
+def set_robot_mode(robot_id, mode):
+    conn = get_db_connection()
+    conn.execute("""
+        INSERT INTO robot_settings (robot_id, control_mode) 
+        VALUES (?, ?)
+        ON CONFLICT(robot_id) DO UPDATE SET control_mode = excluded.control_mode
+    """, (robot_id, mode))
+    conn.commit()
+    conn.close()
+
+def set_robot_manual_command(robot_id, command):
+    conn = get_db_connection()
+    conn.execute("""
+        UPDATE robot_settings 
+        SET last_command = ?, last_command_ts = ? 
+        WHERE robot_id = ?
+    """, (command, time.time(), robot_id))
+    conn.commit()
+    conn.close()
+
+def get_base_mode():
+    conn = get_db_connection()
+    row = conn.execute("SELECT operation_mode FROM base_settings WHERE id = 1").fetchone()
+    conn.close()
+    return row['operation_mode'] if row else 'FULLY_AUTO'
+
+def set_base_mode(mode):
+    conn = get_db_connection()
+    conn.execute("UPDATE base_settings SET operation_mode = ? WHERE id = 1", (mode,))
+    conn.commit()
+    conn.close()
+
+def create_pending_approval(robot_id, action_type, severity, lat, lon):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO pending_approvals (robot_id, action_type, severity, lat, lon, created_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, (robot_id, action_type, severity, lat, lon, time.time()))
+    id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    return id
+
+def get_pending_approvals():
+    conn = get_db_connection()
+    rows = conn.execute("SELECT * FROM pending_approvals WHERE status = 'PENDING' ORDER BY created_at DESC").fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def update_approval_status(approval_id, status):
+    conn = get_db_connection()
+    conn.execute("UPDATE pending_approvals SET status = ? WHERE id = ?", (status, approval_id))
+    conn.commit()
+    conn.close()
+
+
