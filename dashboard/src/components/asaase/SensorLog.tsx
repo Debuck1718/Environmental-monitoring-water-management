@@ -10,14 +10,14 @@ interface LogEntry {
 
 const SensorLog: React.FC = () => {
   // Simulated Log Data
-  const logs: LogEntry[] = [
+  const [logs] = React.useState<LogEntry[]>(() => [
     { ts: Date.now() / 1000, source: 'GROUND_01', msg: 'Soil scan complete: Mercury detection (0.88mg/kg)', type: 'WARN' },
     { ts: Date.now() / 1000 - 60, source: 'AQUA_01', msg: 'Turbidity stable at 45.0 NTU', type: 'INFO' },
     { ts: Date.now() / 1000 - 120, source: 'BASE', msg: 'GSM Signal Handshake: 94%', type: 'SYS' },
     { ts: Date.now() / 1000 - 180, source: 'GROUND_01', msg: 'Biochar dispenser engaged at GH_LOC_001', type: 'CRIT' },
     { ts: Date.now() / 1000 - 240, source: 'AQUA_01', msg: 'Route segment 4 validated', type: 'INFO' },
     { ts: Date.now() / 1000 - 300, source: 'BASE', msg: 'Encryption keys rotated', type: 'SYS' },
-  ];
+  ]);
 
   const getColor = (type: string) => {
     switch (type) {

@@ -20,7 +20,7 @@ const WaypointEditor: React.FC<WaypointEditorProps> = ({ waypoints, onClear, onU
         <div className="flex gap-2">
            <select 
              value={selectedRobot} 
-             onChange={(e) => setSelectedRobot(e.target.value as any)}
+             onChange={(e) => setSelectedRobot(e.target.value as 'GROUND_01' | 'AQUA_01')}
              className="bg-slate-900 border border-white/10 rounded-lg px-3 py-1 text-xs text-slate-200 outline-none"
            >
              <option value="GROUND_01">GROUND_01</option>

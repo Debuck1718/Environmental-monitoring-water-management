@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Printer, X, ShieldAlert, Globe, ExternalLink, Download, ChevronRight, Check } from 'lucide-react';
+import { Printer, X, ShieldAlert, Globe, Download, Check, Terminal } from 'lucide-react';
 import type { RemediationReport } from '../../asaaseApi';
 
 interface ReportViewerProps {

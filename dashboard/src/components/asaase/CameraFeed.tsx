@@ -6,11 +6,27 @@ interface CameraFeedProps {
   subLabel?: string;
   source: 'GROUND' | 'AQUA';
   type: 'FRONT' | 'SIDE' | 'DOWN' | 'FORWARD';
+  isOnline?: boolean;
 }
 
-const CameraFeed: React.FC<CameraFeedProps> = ({ label, subLabel, source, type }) => {
+const CameraFeed: React.FC<CameraFeedProps> = ({ label, subLabel, source, type, isOnline = true }) => {
+  if (!isOnline) {
+    return (
+      <div className="relative aspect-video bg-black rounded-2xl overflow-hidden border border-white/5 flex flex-col items-center justify-center group">
+         <div className="text-red-500/80 font-mono font-black text-xl md:text-2xl uppercase tracking-[0.3em] animate-pulse mb-2">NO SIGNAL</div>
+         <div className="text-slate-600 font-mono font-bold text-[8px] md:text-[10px] uppercase tracking-widest">{label} - OFFLINE</div>
+         
+         {/* Corner Brackets */}
+         <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-white/10"></div>
+         <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-white/10"></div>
+         <div className="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-white/10"></div>
+         <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-white/10"></div>
+      </div>
+    );
+  }
+
   return (
-    <div className="relative aspect-video bg-slate-900 rounded-2xl overflow-hidden border border-white/10 group">
+    <div className="relative aspect-video bg-slate-900 rounded-2xl overflow-hidden border border-emerald-500/20 group">
       {/* Simulated Noise/Overlay */}
       <div className="absolute inset-0 opacity-20 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
       

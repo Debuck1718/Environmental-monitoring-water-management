@@ -15,7 +15,7 @@ import { ThemeProvider } from './components/ThemeContext';
 // Main Application Hub
 function App() {
   const [currentView, setCurrentView] = useState<ViewType>('overview');
-  const [isSidebarExpanded, setSidebarExpanded] = useState(true);
+
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
@@ -81,8 +81,6 @@ function App() {
           <Sidebar 
             currentView={currentView} 
             onViewChange={setCurrentView} 
-            isExpanded={isSidebarExpanded}
-            toggleExpanded={() => setSidebarExpanded(!isSidebarExpanded)}
             onLogout={handleLogout}
           />
           <main className="flex-1 h-screen overflow-y-auto overflow-x-hidden">

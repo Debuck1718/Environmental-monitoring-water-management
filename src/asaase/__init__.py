@@ -4,7 +4,6 @@ def init_asaase(app: Flask):
     from src.asaase.db import init_asaase_db
     from src.asaase.radio_listener import start_radio_listener
     from src.asaase.health_monitor import start_health_monitor
-    from src.asaase.mission_engine import start_mission_engine
     from src.asaase.api import asaase_bp
     
     # 1. Initialize DB tables
@@ -16,7 +15,7 @@ def init_asaase(app: Flask):
     # 3. Start Background Threads
     start_radio_listener()
     start_health_monitor()
-    start_mission_engine()
+    # start_mission_engine() # Disable Demo/Simulation Logic
 
     
     print("ASAASE Robot Control System Initialized Successfully.")

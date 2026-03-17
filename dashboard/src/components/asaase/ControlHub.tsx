@@ -1,5 +1,5 @@
-import React, { useEffect, useCallback, useState } from 'react';
-import { Gamepad, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Zap, Shield, Sparkles, Sprout, FlaskConical, Camera, Radar, Activity, Droplet, Wind, Terminal, Waves, Bot } from 'lucide-react';
+import React, { useCallback, useState } from 'react';
+import { Gamepad, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Zap, Shield, Sprout, FlaskConical, Radar, Activity, Droplet, Terminal } from 'lucide-react';
 import type { RobotSettings } from '../../asaaseApi';
 import * as api from '../../asaaseApi';
 
@@ -22,19 +22,21 @@ const ControlHub: React.FC<ControlHubProps> = ({
   onRobotChange, 
   minimal 
 }) => {
-  const isGround = robotId.startsWith('GROUND');
   const safeApprovals = Array.isArray(approvals) ? approvals : [];
   const [dosingVal, setDosingVal] = useState(50); // Default 50g/m2 or 50ml
   const [showManualConfirm, setShowManualConfirm] = useState(false);
   const [pendingManualCmd, setPendingManualCmd] = useState<string | null>(null);
 
+  const currentControlMode = settings?.control_mode || 'FULLY_AUTO';
+  const currentBaseMode = baseSettings?.operation_mode || 'FULLY_AUTO';
+
   const sendCommand = useCallback(async (command: string) => {
-    if (settings?.control_mode === 'FULLY_AUTO' && command !== 'HALT_ALL') {
+    if (currentControlMode === 'FULLY_AUTO' && command !== 'HALT_ALL') {
       alert("Manual override locked in AUTO mode. Switch to MANUAL first.");
       return;
     }
 
-    if (command !== 'HALT_ALL' && !showManualConfirm && settings?.control_mode === 'MANUAL') {
+    if (command !== 'HALT_ALL' && !showManualConfirm && currentControlMode === 'MANUAL') {
         setPendingManualCmd(command);
         setShowManualConfirm(true);
         return;
@@ -46,7 +48,7 @@ const ControlHub: React.FC<ControlHubProps> = ({
     } catch (e) {
       console.error("Command failed", e);
     }
-  }, [robotId, settings, showManualConfirm, onSettingsUpdate]);
+  }, [robotId, settings, showManualConfirm, onSettingsUpdate, currentControlMode]);
 
   const confirmManual = () => {
       if (pendingManualCmd) {
@@ -83,8 +85,6 @@ const ControlHub: React.FC<ControlHubProps> = ({
       console.error("Approval failed", e);
     }
   };
-
-  if (!settings) return null;
 
   if (minimal) {
     if (safeApprovals.length === 0) return null;
@@ -142,17 +142,17 @@ const ControlHub: React.FC<ControlHubProps> = ({
               </div>
            </div>
 
-           <div className="flex items-center justify-between">
+           <div className="flex flex-col gap-4">
               <div className="flex items-center gap-2">
                  <Gamepad size={20} className="text-slate-600" />
                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Control State</span>
               </div>
-              <div className="flex bg-white/5 p-1 rounded-xl border border-white/5">
+              <div className="flex flex-wrap gap-2 bg-white/5 p-2 rounded-xl border border-white/5">
                  {(['MANUAL', 'SEMI_AUTO', 'FULLY_AUTO'] as const).map((m) => (
                     <button 
                        key={m}
                        onClick={() => handleModeChange(m)}
-                       className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase transition-all ${settings.control_mode === m ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'text-slate-500 hover:text-slate-300'}`}
+                       className={`px-3 py-2 flex-1 min-w-[30%] rounded-lg text-[9px] font-black uppercase transition-all ${currentControlMode === m ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-black/20 text-slate-400 border border-white/5 hover:bg-white/10'}`}
                     >
                        {m.replace('_', ' ')}
                     </button>
@@ -173,7 +173,7 @@ const ControlHub: React.FC<ControlHubProps> = ({
                     <button 
                        key={bm}
                        onClick={() => handleBaseModeChange(bm)}
-                       className={`px-4 py-2 rounded-xl text-[8px] font-black uppercase border transition-all ${baseSettings?.operation_mode === bm ? 'bg-white border-white text-black' : 'border-white/5 text-slate-600 hover:text-slate-400'}`}
+                       className={`px-4 py-2 rounded-xl text-[8px] font-black uppercase border transition-all ${currentBaseMode === bm ? 'bg-white border-white text-black' : 'border-white/5 text-slate-600 hover:text-slate-400'}`}
                     >
                        {bm === 'MANUAL' ? 'Manual / Akwankyerɛ' : 'Auto / Dwumadie'}
                     </button>
@@ -183,6 +183,7 @@ const ControlHub: React.FC<ControlHubProps> = ({
         </div>
 
         {/* 🎮 DIRECT MANUAL DECK */}
+        {currentControlMode === 'MANUAL' && (
         <div className="flex-1 p-8 flex flex-col gap-8">
            <div className="grid grid-cols-2 gap-6">
               <div className="space-y-4">
@@ -281,6 +282,7 @@ const ControlHub: React.FC<ControlHubProps> = ({
               </div>
            </div>
         </div>
+        )}
 
         {/* 🚨 EMERGENCY STATION */}
         <div className="mt-auto grid grid-cols-2 gap-6 p-8 bg-gradient-to-t from-red-500/10 to-transparent rounded-b-[3rem]">

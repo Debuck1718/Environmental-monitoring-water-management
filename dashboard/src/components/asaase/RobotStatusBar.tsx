@@ -7,7 +7,7 @@ interface RobotStatusBarProps {
 }
 
 const RobotStatusBar: React.FC<RobotStatusBarProps> = ({ status }) => {
-  const renderCard = (label: string, data: any, type: 'ground' | 'aqua') => {
+  const renderCard = (label: string, data: { online: boolean; battery_pct: number; last_seen: number }, type: 'ground' | 'aqua') => {
     const isOnline = data.online;
     const batteryColor = data.battery_pct > 70 ? 'text-emerald-400' : data.battery_pct > 30 ? 'text-yellow-400' : 'text-red-400';
     
