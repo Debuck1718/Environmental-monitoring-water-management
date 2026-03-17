@@ -22,6 +22,7 @@ interface AsaaseMapProps {
   aquaHeatmap: any;
   onMapClick?: (lat: number, lon: number) => void;
   waypoints?: {lat: number, lon: number}[];
+  breadCrumbs?: [number, number][];
 }
 
 const MapEvents = ({ onClick }: { onClick?: (lat: number, lon: number) => void }) => {
@@ -33,26 +34,52 @@ const MapEvents = ({ onClick }: { onClick?: (lat: number, lon: number) => void }
   return null;
 };
 
-const AsaaseMap: React.FC<AsaaseMapProps> = ({ groundPos, aquaPos, groundHeatmap, aquaHeatmap, onMapClick, waypoints }) => {
+const AsaaseMap: React.FC<AsaaseMapProps> = ({ groundPos, aquaPos, groundHeatmap, aquaHeatmap, onMapClick, waypoints, breadCrumbs }) => {
   // Center Ghana: 6.5, -1.5
   const center: [number, number] = [6.5, -1.5];
 
   return (
-    <div className="h-full w-full rounded-2xl overflow-hidden border border-white/5">
-      <MapContainer center={center} zoom={7} style={{ height: '100%', width: '100%' }}>
+    <div className="h-full w-full rounded-2xl overflow-hidden border border-white/5 shadow-inner">
+      <MapContainer center={center} zoom={7} style={{ height: '100%', width: '100%', background: '#0f172a' }}>
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
         />
         
         <MapEvents onClick={onMapClick} />
 
+        {/* Historical Breadcrumbs */}
+        {breadCrumbs && breadCrumbs.length > 0 && (
+          <Polyline 
+            positions={breadCrumbs} 
+            pathOptions={{ color: '#6366f1', weight: 2, opacity: 0.4, dashArray: '2, 5' }} 
+          />
+        )}
+
+        {/* Intended Mission Path */}
+        {waypoints && waypoints.length > 0 && (
+          <Polyline 
+            positions={[groundPos, ...waypoints.map(w => [w.lat, w.lon] as [number, number])]} 
+            pathOptions={{ color: '#10b981', weight: 3, opacity: 0.8, dashArray: '10, 10' }} 
+          />
+        )}
+
         {/* Robot Markers */}
         <Marker position={groundPos}>
-          <Popup>ASAASE GROUND: {groundPos[0]}, {groundPos[1]}</Popup>
+          <Popup>
+            <div className="font-mono text-[10px] font-bold">
+              ASAASE GROUND<br/>
+              {groundPos[0].toFixed(4)}, {groundPos[1].toFixed(4)}
+            </div>
+          </Popup>
         </Marker>
         <Marker position={aquaPos}>
-          <Popup>ASAASE AQUA: {aquaPos[0]}, {aquaPos[1]}</Popup>
+          <Popup>
+            <div className="font-mono text-[10px] font-bold">
+              ASAASE AQUA<br/>
+              {aquaPos[0].toFixed(4)}, {aquaPos[1].toFixed(4)}
+            </div>
+          </Popup>
         </Marker>
 
         {/* Heatmaps */}

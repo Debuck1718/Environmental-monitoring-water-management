@@ -239,3 +239,16 @@ export const approveAction = async (approval_id: number, action: 'APPROVED' | 'R
 };
 
 
+export const fetchGroundHistory = async (): Promise<{ts: number, confidence_score: number, battery_pct: number}[]> => {
+  const res = await fetch(`${API_BASE}/ground/history`);
+  return res.json();
+};
+
+export const fetchAquaHistory = async (): Promise<{ts: number, turbidity_ntu: number, ph_value: number, battery_pct: number}[]> => {
+  const res = await fetch(`${API_BASE}/aqua/history`);
+  return res.json();
+};
+export const fetchSystemHealth = async () => {
+  const res = await fetch(`${API_BASE}/asaase/health`);
+  return res.json();
+};

@@ -2,11 +2,19 @@ from flask import Blueprint, jsonify, request
 import os
 import json
 import time
+import psutil
 from src.asaase.db import get_db_connection, save_waypoints, get_robot_settings, set_robot_mode, set_robot_manual_command
 from src.asaase.radio_listener import robot_last_seen, send_radio_command
-
+from src.asaase.logger import api_logger
 
 asaase_bp = Blueprint('asaase', __name__)
+
+def validate_robot_id(robot_id):
+    if not robot_id or not isinstance(robot_id, str):
+        return False
+    if not (robot_id.startswith("GROUND_") or robot_id.startswith("AQUA_")):
+        return False
+    return True
 
 @asaase_bp.route('/ground/latest', methods=['GET'])
 def get_ground_latest():
@@ -42,6 +50,22 @@ def get_aqua_latest():
     conn.close()
     return jsonify([dict(row) for row in rows])
 
+@asaase_bp.route('/ground/history', methods=['GET'])
+def get_ground_history():
+    conn = get_db_connection()
+    cutoff = time.time() - 86400
+    rows = conn.execute("SELECT ts, confidence_score, battery_pct FROM ground_telemetry WHERE ts > ? ORDER BY ts ASC", (cutoff,)).fetchall()
+    conn.close()
+    return jsonify([dict(row) for row in rows])
+
+@asaase_bp.route('/aqua/history', methods=['GET'])
+def get_aqua_history():
+    conn = get_db_connection()
+    cutoff = time.time() - 86400
+    rows = conn.execute("SELECT ts, turbidity_ntu, ph_value, battery_pct FROM aqua_telemetry WHERE ts > ? ORDER BY ts ASC", (cutoff,)).fetchall()
+    conn.close()
+    return jsonify([dict(row) for row in rows])
+
 @asaase_bp.route('/aqua/heatmap', methods=['GET'])
 def get_aqua_heatmap():
     conn = get_db_connection()
@@ -65,8 +89,12 @@ def get_aqua_heatmap():
 
 @asaase_bp.route('/alerts', methods=['GET'])
 def get_alerts():
-    page = int(request.args.get('page', 1))
-    limit = int(request.args.get('limit', 10))
+    try:
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 10))
+    except ValueError:
+        return jsonify({"error": "Invalid pagination parameters"}), 400
+        
     offset = (page - 1) * limit
     
     conn = get_db_connection()
@@ -122,10 +150,13 @@ def post_ground_waypoints():
     data = request.json
     robot_id = data.get('robot_id')
     waypoints = data.get('waypoints', [])
+    
+    if not validate_robot_id(robot_id) or not robot_id.startswith("GROUND"):
+        return jsonify({"error": "Invalid Robot ID"}), 400
+    
+    api_logger.info(f"SET WAYPOINTS for {robot_id}: {len(waypoints)} points")
     save_waypoints(robot_id, waypoints)
-    # Send waypoints over radio
     send_radio_command(robot_id, f"WAYPOINTS:{json.dumps(waypoints)}")
-    print(f"Waypoints sent to {robot_id}: {waypoints}")
     return jsonify({"status": "success"})
 
 @asaase_bp.route('/aqua/route', methods=['POST'])
@@ -133,15 +164,19 @@ def post_aqua_route():
     data = request.json
     robot_id = data.get('robot_id')
     waypoints = data.get('waypoints', [])
+    
+    if not validate_robot_id(robot_id) or not robot_id.startswith("AQUA"):
+        return jsonify({"error": "Invalid Robot ID"}), 400
+    
+    api_logger.info(f"SET ROUTE for {robot_id}: {len(waypoints)} points")
     save_waypoints(robot_id, waypoints)
-    # Send route over radio
     send_radio_command(robot_id, f"ROUTE:{json.dumps(waypoints)}")
-    print(f"Route sent to {robot_id}: {waypoints}")
     return jsonify({"status": "success"})
 
 @asaase_bp.route('/control/settings/<robot_id>', methods=['GET'])
 def get_control_settings(robot_id):
-    from src.asaase.db import get_robot_settings
+    if not validate_robot_id(robot_id):
+        return jsonify({"error": "Invalid Robot ID"}), 400
     return jsonify(get_robot_settings(robot_id))
 
 @asaase_bp.route('/control/mode', methods=['POST'])
@@ -149,9 +184,14 @@ def post_control_mode():
     data = request.json
     robot_id = data.get('robot_id')
     mode = data.get('mode')
+    
+    if not validate_robot_id(robot_id):
+        return jsonify({"error": "Invalid Robot ID"}), 400
+        
     if mode not in ['MANUAL', 'SEMI_AUTO', 'FULLY_AUTO']:
         return jsonify({"error": "Invalid mode"}), 400
-    from src.asaase.db import set_robot_mode
+        
+    api_logger.info(f"MODE CHANGE for {robot_id} -> {mode}")
     set_robot_mode(robot_id, mode)
     return jsonify({"status": "success", "mode": mode})
 
@@ -160,16 +200,19 @@ def post_control_manual():
     data = request.json
     robot_id = data.get('robot_id')
     command = data.get('command')
-    from src.asaase.db import get_robot_settings, set_robot_manual_command
+    
+    if not validate_robot_id(robot_id):
+        return jsonify({"error": "Invalid Robot ID"}), 400
+    
     settings = get_robot_settings(robot_id)
     if settings['control_mode'] == 'FULLY_AUTO':
+        api_logger.warning(f"BLOCKED MANUAL COMMAND to {robot_id} (Robot in FULLY_AUTO)")
         return jsonify({"error": "Robot is in Fully Autonomous mode. Override not permitted."}), 403
+        
+    api_logger.info(f"MANUAL COMMAND for {robot_id}: {command}")
     set_robot_manual_command(robot_id, command)
     send_radio_command(robot_id, command)
-    print(f"MANUAL COMMAND SENT TO {robot_id}: {command}")
     return jsonify({"status": "success", "command": command})
-
-# --- New BASE & Approval Endpoints ---
 
 @asaase_bp.route('/base/settings', methods=['GET'])
 def get_base_settings():
@@ -179,8 +222,13 @@ def get_base_settings():
 @asaase_bp.route('/base/mode', methods=['POST'])
 def update_base_mode():
     data = request.json
+    mode = data.get('mode')
+    if mode not in ['MANUAL', 'SEMI_AUTO', 'FULLY_AUTO']:
+        return jsonify({"error": "Invalid mode"}), 400
+        
+    api_logger.info(f"BASE MODE CHANGE -> {mode}")
     from src.asaase.db import set_base_mode
-    set_base_mode(data['mode'])
+    set_base_mode(mode)
     return jsonify({"status": "success"})
 
 @asaase_bp.route('/control/approvals', methods=['GET'])
@@ -190,9 +238,44 @@ def list_approvals():
 
 @asaase_bp.route('/control/approve', methods=['POST'])
 def approve_action():
-    data = request.json # {approval_id: X, action: 'APPROVED'|'REJECTED'}
+    data = request.json
+    approval_id = data.get('approval_id')
+    action = data.get('action')
+    
+    if action not in ['APPROVED', 'REJECTED']:
+        return jsonify({"error": "Invalid action"}), 400
+        
+    api_logger.info(f"APPROVAL for ID {approval_id}: {action}")
     from src.asaase.db import update_approval_status
-    update_approval_status(data['approval_id'], data['action'])
+    update_approval_status(approval_id, action)
     return jsonify({"status": "success"})
+
+@asaase_bp.route('/health', methods=['GET'])
+def get_system_health():
+    try:
+        cpu_usage = psutil.cpu_percent(interval=1)
+        memory = psutil.virtual_memory()
+        disk = psutil.disk_usage('/')
+        
+        if hasattr(psutil, "sensors_temperatures"):
+            temp_data = psutil.sensors_temperatures()
+        else:
+            temp_data = {}
+            
+        core_temp = 35
+        if temp_data and 'coretemp' in temp_data:
+            core_temp = temp_data['coretemp'][0].current
+            
+        return jsonify({
+            "status": "OPERATIONAL",
+            "cpu": cpu_usage,
+            "ram": memory.percent,
+            "disk": disk.percent,
+            "temp": core_temp,
+            "radio_latency_ms": 12 # Mocked value for serial handshake
+        })
+    except Exception as e:
+        api_logger.error(f"HEALTH CHECK FAILED: {str(e)}")
+        return jsonify({"status": "DEGRADED", "error": str(e)}), 500
 
 

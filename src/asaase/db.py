@@ -1,6 +1,7 @@
 import sqlite3
 import os
 import time
+from src.asaase.logger import app_logger
 
 DB_PATH = os.path.join(os.getcwd(), "runs", "data.db")
 
@@ -145,6 +146,7 @@ def save_ground_telemetry(data: dict):
     ))
     conn.commit()
     conn.close()
+    app_logger.debug(f"DB: Saved ground telemetry for {data['robot_id']}")
 
 def save_aqua_telemetry(data: dict):
     conn = get_db_connection()
@@ -163,6 +165,7 @@ def save_aqua_telemetry(data: dict):
     ))
     conn.commit()
     conn.close()
+    app_logger.debug(f"DB: Saved aqua telemetry for {data['robot_id']}")
 
 def create_alert(robot_id, severity, lat, lon, alert_type, message):
     conn = get_db_connection()
@@ -271,5 +274,6 @@ def update_approval_status(approval_id, status):
     conn.execute("UPDATE pending_approvals SET status = ? WHERE id = ?", (status, approval_id))
     conn.commit()
     conn.close()
+    app_logger.info(f"DB: Updated approval {approval_id} to {status}")
 
 

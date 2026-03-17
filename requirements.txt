@@ -5,4 +5,12 @@ pytest>=7.4.0
 pyserial>=3.5
 fastapi>=0.109.0
 uvicorn[standard]>=0.25.0
-# Add libraries as development progresses
+flask>=3.0.0
+flask-cors>=4.0.0
+flask-sqlalchemy>=3.1.1
+pyjwt>=2.8.0
+bcrypt>=4.1.2
+google-generativeai>=0.3.2
+pydantic>=2.5.3
+python-dotenv>=1.0.0
+psutil>=5.9.0

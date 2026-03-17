@@ -21,8 +21,8 @@ const AlertList: React.FC<AlertListProps> = ({ alerts, page, setPage, onViewRepo
             </div>
          ) : (
             safeAlerts.map((alert) => (
-              <div key={alert.id} className="bg-black/40 p-3 rounded-2xl border border-white/5 space-y-2 group hover:border-red-500/30 hover:shadow-[0_0_20px_rgba(239,68,68,0.1)] transition-all cursor-pointer relative overflow-hidden">
-                 <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <div key={alert.id} className="bg-slate-100 dark:bg-black/40 p-3 rounded-2xl border border-slate-200 dark:border-white/5 space-y-2 group hover:border-red-500/30 dark:hover:border-red-500/30 hover:shadow-lg dark:hover:shadow-[0_0_20px_rgba(239,68,68,0.1)] transition-all cursor-pointer relative overflow-hidden">
+                 <div className="absolute inset-0 bg-gradient-to-br from-slate-200/50 dark:from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                  <div className="flex justify-between items-center text-[9px] font-bold text-slate-500 uppercase relative z-10">
                     <div className="flex items-center gap-2">
                        <span className={alert.severity === 'CRITICAL' ? 'text-red-400' : 'text-amber-400'}>

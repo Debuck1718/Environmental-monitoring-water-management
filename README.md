@@ -1,97 +1,118 @@
-# EcoGuard HQ: Environmental Monitoring & Water Management System
+# ASAASE: Integrated Environmental Monitoring & Water Management Platform
 
-EcoGuard HQ is a comprehensive, full-stack solution designed for real-time environmental surveillance and intelligent water resource management. It integrates computer vision, sensor data ingestion, and automated control systems into a unified dashboard.
+![Platform Status](https://img.shields.io/badge/Status-COMPETITION--READY-emerald?style=for-the-badge&logo=shield)
+![Project Scope](https://img.shields.io/badge/Scope-Integrated_Environment_&_Utilities-blue?style=for-the-badge)
 
-## 🌟 Key Features
-
-### 🖥️ Real-Time Dashboard
-A premium, dark-mode web interface built with **React**, **Vite**, and **Tailwind CSS**. 
-- **Live Metrics**: At-a-glance view of tree cover, pH levels, and temperature.
-- **Dynamic Charts**: Interactive trend visualizations using **Recharts**.
-- **System Health**: Real-time connection monitoring and alert status.
-
-### 🌲 Environmental Monitoring (Computer Vision)
-Powered by **OpenCV**, this module monitors physical environments via video streams.
-- **Tree Cover Analysis**: Calculates green ratios to detect deforestation or growth.
-- **Excavation Detection**: Identifies unauthorized digging or terrain changes.
-- **Activity Tracking**: Motion-based region detection to monitor site activity.
-- **ROI Masking**: Define specific "Regions of Interest" to reduce noise.
-
-### 💧 Water Quality & Management
-A multi-stage system ensuring water safety and efficient delivery.
-- **Sensor Ingest**: Real-time monitoring of pH, Turbidity, and Temperature (supports Serial/Arduino & Mock sources).
-- **Automated Filtration**: Intelligent control of filtration cycles, including debris dumps and backwash procedures.
-- **Smart Distribution**: A graph-based routing engine that uses Dijkstra's algorithm to calculate optimal delivery paths to various nodes (homes/factories).
-
-### ⚡ Hydro-Energy Monitoring
-Tracks energy generation from water turbines.
-- **Telemetry Ingest**: Real-time RPM and Power (Watts) tracking.
-- **Persistence**: Daily statistics and cumulative energy (kWh) calculations.
+## 🌍 Vision
+The **ASAASE Platform** is a comprehensive software ecosystem designed for large-scale environmental protection and sustainable water management. Developed for the specific challenges of West African terrain, it combines computer vision, tactical robotics, and utility management into a single, unified command center.
 
 ---
 
-## 🏗️ Architecture & Code Structure
+## 🏗️ Integrated System Architecture
 
-### Backend (Python/Flask)
-The engine of the system, handling data processing and persistence.
-- `dashboard_api.py`: Flask-based REST API serving analytics to the frontend.
-- `main.py`: Entry point for Computer Vision monitoring (`src.environmental_monitoring`).
-- `water_main.py`: Runner for water quality telemetry.
-- `filtration_main.py`: Logic for automated hardware control.
-- `distribution_main.py`: Routing and distribution simulation.
-- `storage/`: Abstracted SQLite storage layer for consistent data handling across modules.
+The software is composed of five specialized sub-systems that converge into the **Tactical Hub Dashboard**.
 
-### Frontend (React/TypeScript)
-The presentation layer, providing a modern UX.
-- `dashboard/src/components/`: Modular UI components (Gauges, Stat Cards, Charts).
-- `dashboard/src/api.ts`: Typed data fetching layer connecting to the Flask backend.
-- `dashboard/src/index.css`: Custom design system with glassmorphism and HSL-tailored colors.
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-- Python 3.8+
-- Node.js LTS
-- OpenCV & Flask dependencies (`pip install -r requirements.txt`)
-
-### Running the Fullstack System
-We provide a convenience script to launch both the backend and frontend simultaneously:
-
-```powershell
-./run_fullstack.ps1
+```mermaid
+graph TD
+    A[Environmental Monitor] -->|CV Results| F[Central DB]
+    B[Water Quality System] -->|Sensor Data| F
+    C[Filtration Management] -->|Status/Control| F
+    D[Energy & Turbine] -->|Efficiency| F
+    E[Distribution Network] -->|Fulfillment| F
+    G[ASAASE Tactical Hub] <-->|Robotic Telemetry| H[Tactical API]
+    F --- H
+    H --> I[Unified Dashboard CLI/Web]
 ```
 
-### Manual Component Launch
-If you wish to run components individually:
+---
 
-**1. Start the API Backend:**
-```bash
+## 🧩 Core Software Modules
+
+### 1. **Environmental Monitoring (`environmental_monitoring`)**
+Detects environmental threats in real-time using high-speed computer vision.
+- **Tree Cover Analysis**: Monitors deforestation via green-ratio variance.
+- **Excavation Detection**: Identifies illegal mining or soil disturbance using background subtraction.
+- **Activity Tracking**: Real-time motion detection for security in remote areas.
+
+### 2. **Water Quality & Intelligence (`water`)**
+Sensor-driven analysis of water safety.
+- **Multiparameter Sensing**: Ph, Turbidity, Temperature, and Dissolved Oxygen.
+- **AI Recommendations**: Integrated with Google GenAI to provide remediation steps based on contaminant levels.
+
+### 3. **Filtration & Utility Control (`filtration`)**
+Automated management of water purification infrastructure.
+- **Dynamic Debris Management**: Real-time tracking of net load and clogging.
+- **Automated Cycles**: Software-controlled backwashing and dump sequences.
+
+### 4. **Micro-Grid Energy Tracker (`energy`)**
+Monitors the power generation from distributed water turbines.
+- **Turbine Analysis**: Tracking RPM vs Power (W) output.
+- **Efficiency Metrics**: Real-time power-to-flow ratio calculations.
+
+### 5. **Distribution & Fulfillment (`distribution`)**
+Tracks end-user water delivery metrics.
+- **Unit Delivery**: Monitors flow volume to individual homes or distribution units.
+- **Daily Stat Aggregation**: Automated calculation of daily fulfillment targets.
+
+### 6. **ASAASE Tactical Hub (Robotics)**
+The autonomous field arm of the platform.
+- **Ground & Aqua Units**: Specialized robots for autonomous sampling and patrolling.
+- **Radio Bridge**: Resilient ACK/Retry radio communication for remote deployment.
+
+---
+
+## 🕹️ Tactical Command Interface
+The **Tactical Hub** provides a localized, high-performance interface for operators:
+- **FLEET STATUS**: Real-time drill-down into every tactical unit.
+- **COMMAND DECK**: Live resource monitoring (CPU/RAM/LATENCY).
+- **LOCALIZED UI**: Support for **English**, **Twi**, **Ga**, and **Ewe**.
+- **SYSTEM CONSOLE**: Live terminal feedback for mission events.
+
+---
+
+## 🛠️ Technical Stack
+- **Languages**: Python 3.11+, TypeScript.
+- **Frameworks**: Flask (API), React 19 (Frontend), Vite.
+- **Visualization**: OpenCV (CV), Leaflet JS (Mapping), Recharts (Trends).
+- **Database**: Multi-channel SQLite Architecture.
+- **IoT/Radio**: Serial-over-radio handshake protocols.
+
+---
+
+## 🚀 Operational Protocols
+
+### 1. **Deployment**
+```powershell
+pip install -r requirements.txt
+```
+
+### 2. **Environment Pre-flight**
+Check the health of all modules (Environment, Hardware, API, DB):
+```powershell
+python tools/preflight_check.py
+```
+
+### 3. **Database Setup**
+Initialize the integrated data structure:
+```powershell
+python src/asaase/db_setup.py
+```
+
+### 4. **Launch Unified Platform**
+Launch the central API and Dashboard:
+```powershell
 python dashboard_api.py
 ```
-
-**2. Start the Environmental Monitor:**
-```bash
-python main.py --video path/to/video.mp4 --db runs/data.db
-```
-
-**3. Start the Web Dashboard:**
-```bash
-cd dashboard
-npm install
-npm run dev
-```
+👉 Access the Command Center at: **[http://localhost:5000](http://localhost:5000)**
 
 ---
 
-## 🛠️ Configuration
-The system is highly configurable via CLI arguments or YAML files:
-- **Alert Thresholds**: Set custom bounds for pH, temperature, or green ratio drops.
-- **ROI Selection**: Pass polygon coordinates to focus the CV monitor on specific areas.
-- **Mock vs. Real Hardware**: Toggle between simulated data and real Serial/USB sensor feeds.
+## 📂 Codebase Navigation
+- `src/`: Core implementation of all sub-systems.
+- `dashboard/`: React Tactical Hub frontend.
+- `tools/`: Field diagnostics and pre-flight tools.
+- `tests/`: Integrated validation suite.
+- `runs/`: Dynamic data and mission logs (Git-ignored).
 
 ---
-
-## 📝 License
-This project is licensed under the MIT License - see the LICENSE file for details.
+**Developed for the ASAASE Initiative: Excellence in Integrated Environmental Management.**

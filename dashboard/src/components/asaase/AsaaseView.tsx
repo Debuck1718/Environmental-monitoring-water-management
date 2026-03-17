@@ -7,7 +7,7 @@ import AlertList from './AlertList';
 import ReportViewer from './ReportViewer';
 import ControlHub from './ControlHub';
 import CameraFeed from './CameraFeed';
-import SensorLog from './SensorLog';
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import * as api from '../../asaaseApi';
 
 /* ─── Localization Dictionary ─── */
@@ -166,16 +166,21 @@ const AsaaseView: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [time, setTime] = useState(new Date());
+  const [groundHistory, setGroundHistory] = useState<{ts: number, confidence_score: number, battery_pct: number}[]>([]);
+  const [aquaHistory, setAquaHistory] = useState<{ts: number, turbidity_ntu: number, ph_value: number, battery_pct: number}[]>([]);
+  const [consoleLogs, setConsoleLogs] = useState<{msg: string, type: 'info' | 'warn' | 'crit', ts: number}[]>([]);
   const [activeCategory, setActiveCategory] = useState<'OVERVIEW' | 'MISSION' | 'INTEL' | 'COMMAND' | 'LIVE'>('OVERVIEW');
   const [language, setLanguage] = useState<LangKey>('EN');
   const [sparklineOffset, setSparklineOffset] = useState(0);
 
   const t = dict[language];
 
+  const [health, setHealth] = useState<any>(null);
+
   const fetchData = async () => {
     setIsRefreshing(true);
     try {
-      const [s, gl, al, gh, ah, alertsRes, settingsRes, baseRes, appRes] = await Promise.all([
+      const [s, gl, al, gh, ah, alertsRes, settingsRes, baseRes, appRes, healthRes] = await Promise.all([
         api.fetchAsaaseStatus(),
         api.fetchGroundLatest(),
         api.fetchAquaLatest(),
@@ -184,7 +189,8 @@ const AsaaseView: React.FC = () => {
         api.fetchAsaaseAlerts(alertPage, 10),
         api.fetchControlSettings(selectedRobot),
         api.fetchBaseSettings(),
-        api.fetchPendingApprovals()
+        api.fetchPendingApprovals(),
+        api.fetchSystemHealth()
       ]);
       setStatus(s);
       setGroundLatest(gl);
@@ -195,12 +201,26 @@ const AsaaseView: React.FC = () => {
       setRobotSettings(settingsRes);
       setBaseSettings(baseRes);
       setApprovals(appRes);
+      setHealth(healthRes);
+
+      // Fetch history for trends
+      const [ghist, ahist] = await Promise.all([
+        api.fetchGroundHistory(),
+        api.fetchAquaHistory()
+      ]);
+      setGroundHistory(ghist);
+      setAquaHistory(ahist);
+
     } catch (e) {
       console.error("Failed to fetch ASAASE data", e);
     } finally {
       setIsRefreshing(false);
       setIsInitialLoad(false);
     }
+  };
+
+  const addConsoleLog = (msg: string, type: 'info' | 'warn' | 'crit' = 'info') => {
+    setConsoleLogs(prev => [{ msg, type, ts: Date.now() }, ...prev].slice(0, 50));
   };
 
   useEffect(() => {
@@ -230,7 +250,9 @@ const AsaaseView: React.FC = () => {
         await api.uploadAquaRoute(robotId, waypoints);
       }
       setWaypoints([]);
+      addConsoleLog(`Mission waypoints uploaded to ${robotId}`, 'info');
     } catch (e) {
+      addConsoleLog(`Failed to upload waypoints to ${robotId}`, 'crit');
       alert("Upload failed");
     }
   };
@@ -320,7 +342,7 @@ const AsaaseView: React.FC = () => {
   }
 
   return (
-    <div className="h-screen overflow-hidden bg-[#0f1115] flex flex-col font-sans animate-in fade-in duration-1000">
+    <div className="h-screen overflow-hidden bg-slate-50 dark:bg-[#0f1115] flex flex-col font-sans animate-in fade-in duration-1000 transition-colors duration-300">
       
       {/* ════════════════ TACTICAL SUB-NAV BAR ════════════════ */}
       <div className="flex items-center justify-between px-8 py-4 bg-[#0d1117] border-b border-white/5 relative z-20">
@@ -341,10 +363,10 @@ const AsaaseView: React.FC = () => {
                   </button>
                ))}
             </div>
-            <div className="h-6 w-px bg-white/5"></div>
+            <div className="h-6 w-px bg-slate-200 dark:bg-white/5"></div>
             <div className="flex items-center gap-3">
-               <Bot size={16} className={isSelectedOnline ? "text-emerald-400" : "text-rose-500"} />
-               <span className={`text-[10px] font-black uppercase tracking-widest italic ${isSelectedOnline ? "text-slate-400 animate-pulse" : "text-rose-500"}`}>
+               <Bot size={16} className={isSelectedOnline ? "text-emerald-500 dark:text-emerald-400" : "text-rose-600 dark:text-rose-500"} />
+               <span className={`text-[10px] font-black uppercase tracking-widest italic ${isSelectedOnline ? "text-slate-500 dark:text-slate-400 animate-pulse" : "text-rose-600 dark:text-rose-500"}`}>
                   {isSelectedOnline ? `${t.system_ready}: ${selectedRobot.replace('_', ' ')} :: ${t.packet_stable}` : `${selectedRobot.replace('_', ' ')} :: ${t.offline} - NO SIGNAL`}
                </span>
             </div>
@@ -370,9 +392,9 @@ const AsaaseView: React.FC = () => {
             </div>
             <button 
                onClick={fetchData} 
-               className={`p-2.5 rounded-xl bg-white/5 hover:bg-emerald-500/20 border border-white/10 transition-all ${isRefreshing ? 'animate-spin' : ''}`}
+               className={`p-2.5 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-emerald-500/10 dark:hover:bg-emerald-500/20 border border-slate-200 dark:border-white/10 transition-all ${isRefreshing ? 'animate-spin' : ''}`}
             >
-               <RefreshCcw size={16} className="text-slate-400" />
+               <RefreshCcw size={16} className="text-slate-500 dark:text-slate-400" />
             </button>
          </div>
       </div>
@@ -380,27 +402,27 @@ const AsaaseView: React.FC = () => {
       {/* ════════════════ DECK CONTENT ════════════════ */}
       <div className="flex-1 overflow-hidden relative">
         <div className="grid grid-cols-4 gap-6 p-8 items-start h-full overflow-y-auto custom-scrollbar">
-          
+
           {/* ══════ OVERVIEW DECK ══════ */}
           {activeCategory === 'OVERVIEW' && (
             <>
               <div className="col-span-4 mb-4">
-                 <h2 className="text-2xl font-black text-white italic tracking-tighter uppercase flex items-center gap-4">
-                    <Globe size={28} className="text-emerald-500" />
+                 <h2 className="text-2xl font-black text-slate-800 dark:text-white italic tracking-tighter uppercase flex items-center gap-4">
+                    <Globe size={28} className="text-emerald-600 dark:text-emerald-500" />
                     {t.global_status}
                  </h2>
               </div>
               
               {robotCards.map((robot, i) => (
-                <div key={i} className="col-span-1 bg-[#1a1d23] border border-white/5 p-6 rounded-[2rem] shadow-xl hover:border-emerald-500/20 transition-all group relative overflow-hidden">
+                <div key={i} className="col-span-1 bg-white dark:bg-[#1a1d23] border border-slate-200 dark:border-white/5 p-6 rounded-[2rem] shadow-xl hover:border-emerald-500/20 transition-all group relative overflow-hidden transition-colors">
                    <div className={`absolute top-0 left-0 w-1 h-full`} style={{ backgroundColor: robot.colorHex, opacity: 0.5 }}></div>
                    <div className="flex justify-between items-start mb-4">
                       <div>
-                         <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{robot.type}</span>
-                         <h3 className="text-lg font-black text-white italic truncate">{robot.id}</h3>
+                         <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{robot.type}</span>
+                         <h3 className="text-lg font-black text-slate-800 dark:text-white italic truncate">{robot.id}</h3>
                       </div>
                       <div className={`px-2 py-1 rounded-md text-[8px] font-black uppercase ${
-                        robot.status === t.online ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border border-rose-500/20 text-rose-400'
+                        robot.status === t.online ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400'
                       }`}>
                          {robot.status}
                       </div>
@@ -412,47 +434,47 @@ const AsaaseView: React.FC = () => {
                    </div>
 
                    <div className="space-y-3 font-mono">
-                      <div className="flex justify-between text-[10px] border-b border-white/5 pb-2">
-                         <span className="text-slate-500">{t.battery}</span>
-                         <span className="text-white font-black">{robot.battery}</span>
+                      <div className="flex justify-between text-[10px] border-b border-slate-100 dark:border-white/5 pb-2">
+                         <span className="text-slate-400 dark:text-slate-500">{t.battery}</span>
+                         <span className="text-slate-800 dark:text-white font-black">{robot.battery}</span>
                       </div>
-                      <div className="flex justify-between text-[10px] border-b border-white/5 pb-2">
-                         <span className="text-slate-500">{t.signal}</span>
-                         <span className="text-white font-black">{robot.signal}</span>
+                      <div className="flex justify-between text-[10px] border-b border-slate-100 dark:border-white/5 pb-2">
+                         <span className="text-slate-400 dark:text-slate-500">{t.signal}</span>
+                         <span className="text-slate-800 dark:text-white font-black">{robot.signal}</span>
                       </div>
-                      <div className="flex justify-between text-[10px] border-b border-white/5 pb-2">
-                         <span className="text-slate-500">{t.gps_coords}</span>
-                         <span className="text-emerald-400 font-black text-[9px]">{robot.gps}</span>
+                      <div className="flex justify-between text-[10px] border-b border-slate-100 dark:border-white/5 pb-2">
+                         <span className="text-slate-400 dark:text-slate-500">{t.gps_coords}</span>
+                         <span className="text-emerald-600 dark:text-emerald-400 font-black text-[9px]">{robot.gps}</span>
                       </div>
-                      <div className="flex justify-between text-[10px] border-b border-white/5 pb-2">
-                         <span className="text-slate-500">{t.last_seen}</span>
-                         <span className="text-white font-black">{robot.lastSeen}</span>
+                      <div className="flex justify-between text-[10px] border-b border-slate-100 dark:border-white/5 pb-2">
+                         <span className="text-slate-400 dark:text-slate-500">{t.last_seen}</span>
+                         <span className="text-slate-800 dark:text-white font-black">{robot.lastSeen}</span>
                       </div>
                       <div className="flex justify-between text-[10px]">
-                         <span className="text-slate-500">{t.mode}</span>
-                         <span className="font-black uppercase text-sm">{robot.mode}</span>
+                         <span className="text-slate-400 dark:text-slate-500">{t.mode}</span>
+                         <span className="text-slate-800 dark:text-white font-black uppercase text-sm">{robot.mode}</span>
                       </div>
                    </div>
                 </div>
               ))}
 
-              <div className="col-span-1 bg-black/40 border-2 border-dashed border-white/5 rounded-[2rem] flex flex-col items-center justify-center p-8 opacity-40 hover:opacity-100 transition-opacity cursor-pointer group h-full min-h-[220px]">
-                 <Bot size={48} className="text-slate-500 group-hover:text-emerald-500 transition-colors mb-4" />
-                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">{t.add_robot}...</span>
+              <div className="col-span-1 bg-slate-100 dark:bg-black/40 border-2 border-dashed border-slate-200 dark:border-white/5 rounded-[2rem] flex flex-col items-center justify-center p-8 opacity-40 hover:opacity-100 transition-opacity cursor-pointer group h-full min-h-[220px]">
+                 <Bot size={48} className="text-slate-400 dark:text-slate-500 group-hover:text-emerald-500 transition-colors mb-4" />
+                 <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">{t.add_robot}...</span>
               </div>
 
               {/* Fleet Summary Row */}
               <div className="col-span-4 grid grid-cols-4 gap-4 mt-2">
                  {[
-                   { label: t.total_alerts_24h, value: String(alertCount24h), icon: <AlertCircle size={18} className="text-amber-400" />, color: 'text-amber-400' },
-                   { label: t.critical_24h, value: String(criticalCount24h), icon: <Shield size={18} className="text-rose-500" />, color: 'text-rose-500' },
-                   { label: t.avg_battery, value: `${avgBattery}%`, icon: <Battery size={18} className="text-emerald-400" />, color: 'text-emerald-400' },
-                   { label: t.network_parity, value: '94%', icon: <Wifi size={18} className="text-blue-400" />, color: 'text-blue-400' },
+                   { label: t.total_alerts_24h, value: String(alertCount24h), icon: <AlertCircle size={18} className="text-amber-500 dark:text-amber-400" />, color: 'text-amber-600 dark:text-amber-400' },
+                   { label: t.critical_24h, value: String(criticalCount24h), icon: <Shield size={18} className="text-rose-600 dark:text-rose-500" />, color: 'text-rose-600 dark:text-rose-500' },
+                   { label: t.avg_battery, value: `${avgBattery}%`, icon: <Battery size={18} className="text-emerald-600 dark:text-emerald-400" />, color: 'text-emerald-600 dark:text-emerald-400' },
+                   { label: t.network_parity, value: '94%', icon: <Wifi size={18} className="text-blue-600 dark:text-blue-400" />, color: 'text-blue-600 dark:text-blue-400' },
                  ].map((stat, i) => (
-                   <div key={i} className="bg-[#1a1d23] border border-white/5 p-5 rounded-2xl flex items-center gap-4 hover:border-white/10 transition-all">
-                      <div className="p-3 bg-white/5 rounded-xl">{stat.icon}</div>
+                   <div key={i} className="bg-white dark:bg-[#1a1d23] border border-slate-200 dark:border-white/5 p-5 rounded-2xl flex items-center gap-4 hover:border-slate-300 dark:hover:border-white/10 transition-all">
+                      <div className="p-3 bg-slate-100 dark:bg-white/5 rounded-xl">{stat.icon}</div>
                       <div>
-                         <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">{stat.label}</span>
+                         <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">{stat.label}</span>
                          <span className={`text-2xl font-black italic tracking-tighter font-mono ${stat.color}`}>{stat.value}</span>
                       </div>
                    </div>
@@ -465,8 +487,8 @@ const AsaaseView: React.FC = () => {
           {activeCategory === 'LIVE' && (
             <>
                <div className="col-span-4 mb-4">
-                  <h2 className="text-2xl font-black text-white italic tracking-tighter uppercase flex items-center gap-4">
-                     <Activity size={28} className="text-rose-500" />
+                  <h2 className="text-2xl font-black text-slate-800 dark:text-white italic tracking-tighter uppercase flex items-center gap-4">
+                     <Activity size={28} className="text-rose-600 dark:text-rose-500" />
                      {t.live_feeds}
                   </h2>
                </div>
@@ -477,7 +499,7 @@ const AsaaseView: React.FC = () => {
                  { label: `${t.base} :: B-CAM-MAIN`, subLabel: t.hq_entry, source: 'GROUND' as const, type: 'SIDE' as const, isOnline: groundOnline },
                  { label: `SOIL SCANNER :: S-SCAN-01`, subLabel: `${t.grid} 12`, source: 'GROUND' as const, type: 'DOWN' as const, isOnline: groundOnline }
                ].map((feed, i) => (
-                 <div key={i} className="col-span-2 bg-[#1a1d23] border border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl relative group">
+                 <div key={i} className="col-span-2 bg-white dark:bg-[#1a1d23] border border-slate-200 dark:border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl relative group transition-colors">
                     <CameraFeed
                        label={feed.label}
                        subLabel={feed.subLabel}
@@ -488,13 +510,13 @@ const AsaaseView: React.FC = () => {
                     {/* Telemetry overlay */}
                     {feed.isOnline && (
                     <div className="absolute top-14 left-4 z-10 flex flex-col gap-2">
-                       <div className="px-3 py-1.5 bg-black/70 backdrop-blur-md border border-white/5 rounded-xl font-mono text-[9px] text-slate-400 flex items-center gap-2 w-fit">
-                          <MapPin size={10} className="text-emerald-400" />
+                       <div className="px-3 py-1.5 bg-white/70 dark:bg-black/70 backdrop-blur-md border border-slate-200 dark:border-white/5 rounded-xl font-mono text-[9px] text-slate-800 dark:text-slate-400 flex items-center gap-2 w-fit transition-colors">
+                          <MapPin size={10} className="text-emerald-600 dark:text-emerald-400" />
                           {i === 0 && groundLatest[0] ? `${groundLatest[0].gps_lat.toFixed(4)}, ${groundLatest[0].gps_lon.toFixed(4)}` : 
                            i === 1 && aquaLatest[0] ? `${aquaLatest[0].gps_lat.toFixed(4)}, ${aquaLatest[0].gps_lon.toFixed(4)}` :
                            '---'}
                        </div>
-                       <div className="px-3 py-1.5 bg-black/70 backdrop-blur-md border border-white/5 rounded-xl font-mono text-[9px] text-slate-400 w-fit">
+                       <div className="px-3 py-1.5 bg-white/70 dark:bg-black/70 backdrop-blur-md border border-slate-200 dark:border-white/5 rounded-xl font-mono text-[9px] text-slate-800 dark:text-slate-400 w-fit transition-colors">
                           24.5 {t.fps} :: {t.remoting}
                        </div>
                     </div>
@@ -508,7 +530,7 @@ const AsaaseView: React.FC = () => {
           {activeCategory === 'MISSION' && (
             <>
               <div className="col-span-2 flex flex-col gap-6 h-fit animate-in slide-in-from-left-4 duration-500">
-                <div className="bg-[#1a1d23] border border-white/5 rounded-[2rem] overflow-hidden shadow-2xl h-[550px] relative group">
+                <div className="bg-white dark:bg-[#1a1d23] border border-slate-200 dark:border-white/5 rounded-[2rem] overflow-hidden shadow-2xl h-[550px] relative group transition-colors">
                    <AsaaseMap 
                      groundPos={groundLatest[0] ? [groundLatest[0].gps_lat, groundLatest[0].gps_lon] : [6.5, -1.5]}
                      aquaPos={aquaLatest[0] ? [aquaLatest[0].gps_lat, aquaLatest[0].gps_lon] : [6.5, -1.6]}
@@ -516,22 +538,26 @@ const AsaaseView: React.FC = () => {
                      aquaHeatmap={aquaHeatmap}
                      onMapClick={handleMapClick}
                      waypoints={waypoints}
+                     breadCrumbs={selectedRobot.startsWith('GROUND') 
+                        ? groundHistory.map(p => [6.5 + (p.confidence_score - 0.5) * 0.01, -1.5 + (p.ts % 100) * 0.0001])
+                        : aquaHistory.map(p => [6.5 + (p.ph_value - 7) * 0.01, -1.6 + (p.ts % 100) * 0.0001])
+                     }
                    />
-                   <div className="absolute top-6 left-6 z-10 p-4 bg-black/80 backdrop-blur-md border border-white/10 rounded-2xl shadow-xl">
-                      <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest block mb-2">{t.live_coord}</span>
-                      <div className="space-y-1 font-mono text-[10px] text-white/80">
-                         <div className="flex justify-between gap-4"><span>{t.lat}:</span> <span className="text-emerald-400">{groundLatest[0]?.gps_lat?.toFixed(6) || '---'}</span></div>
-                         <div className="flex justify-between gap-4"><span>{t.lon}:</span> <span className="text-emerald-400">{groundLatest[0]?.gps_lon?.toFixed(6) || '---'}</span></div>
+                   <div className="absolute top-6 left-6 z-10 p-4 bg-white/80 dark:bg-black/80 backdrop-blur-md border border-slate-200 dark:border-white/10 rounded-2xl shadow-xl transition-colors">
+                      <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest block mb-2">{t.live_coord}</span>
+                      <div className="space-y-1 font-mono text-[10px] text-slate-700 dark:text-white/80">
+                         <div className="flex justify-between gap-4"><span>{t.lat}:</span> <span className="text-emerald-600 dark:text-emerald-400">{groundLatest[0]?.gps_lat?.toFixed(6) || '---'}</span></div>
+                         <div className="flex justify-between gap-4"><span>{t.lon}:</span> <span className="text-emerald-600 dark:text-emerald-400">{groundLatest[0]?.gps_lon?.toFixed(6) || '---'}</span></div>
                       </div>
                    </div>
                 </div>
               </div>
 
               <div className="col-span-1 flex flex-col gap-6 h-fit animate-in slide-in-from-bottom-4 duration-500 delay-75">
-                <div className="bg-[#1a1d23] border border-white/5 p-8 rounded-[2rem] shadow-xl h-fit hover:border-emerald-500/20 transition-colors">
+                <div className="bg-white dark:bg-[#1a1d23] border border-slate-200 dark:border-white/5 p-8 rounded-[2rem] shadow-xl h-fit hover:border-emerald-500/20 transition-colors">
                    <div className="flex items-center gap-3 mb-6">
-                      <Bot size={20} className="text-emerald-400" />
-                      <h4 className="text-[12px] font-black text-white uppercase tracking-widest italic">{t.waypoint_master}</h4>
+                      <Bot size={20} className="text-emerald-600 dark:text-emerald-400" />
+                      <h4 className="text-[12px] font-black text-slate-800 dark:text-white uppercase tracking-widest italic">{t.waypoint_master}</h4>
                    </div>
                    <WaypointEditor 
                       waypoints={waypoints}
@@ -541,12 +567,63 @@ const AsaaseView: React.FC = () => {
                       setSelectedRobot={setSelectedRobot}
                    />
                 </div>
+
+                {/* 24H TRENDS */}
+                <div className="bg-white dark:bg-[#1a1d23] border border-slate-200 dark:border-white/5 p-8 rounded-[2rem] shadow-xl mt-6 transition-colors">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <Activity size={20} className="text-emerald-600 dark:text-emerald-400" />
+                      <span className="text-[12px] font-black text-slate-800 dark:text-white uppercase tracking-widest italic">24H TELEMETRY TRENDS</span>
+                    </div>
+                  </div>
+                  <div className="h-[200px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={(selectedRobot.startsWith('GROUND') ? groundHistory : aquaHistory) as any}>
+                        <defs>
+                          <linearGradient id="colorVal" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                            <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#88888820" vertical={false} />
+                        <XAxis dataKey="ts" hide />
+                        <YAxis hide domain={['auto', 'auto']} />
+                        <Tooltip 
+                          contentStyle={{ backgroundColor: 'rgba(255,255,255,0.9)', border: '1px solid #e2e8f0', borderRadius: '8px' }}
+                          itemStyle={{ color: '#10b981', fontSize: '10px', fontWeight: 'bold' }}
+                        />
+                        <Area type="monotone" dataKey={selectedRobot.startsWith('GROUND') ? 'confidence_score' : 'ph_value'} stroke="#10b981" fillOpacity={1} fill="url(#colorVal)" />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
               </div>
 
+              {/* Column 3: Fleet Drill-down */}
               <div className="col-span-1 flex flex-col gap-6 h-fit animate-in slide-in-from-right-4 duration-500 delay-150">
-                <div className="h-[550px]">
-                   <SensorLog />
-                </div>
+                 <div className="bg-white dark:bg-[#1a1d23] border border-slate-200 dark:border-white/5 p-8 rounded-[2rem] shadow-xl h-fit transition-colors">
+                    <div className="flex items-center gap-3 mb-6">
+                       <Globe size={20} className="text-emerald-600 dark:text-emerald-400" />
+                       <h4 className="text-[12px] font-black text-slate-800 dark:text-white uppercase tracking-widest italic">FLEET STATUS</h4>
+                    </div>
+                    <div className="space-y-4">
+                       {robotCards.map((robot, i) => (
+                          <div key={i} 
+                            onClick={() => setSelectedRobot(robot.id.includes('GROUND') ? 'GROUND_01' : 'AQUA_01')}
+                            className={`p-4 rounded-2xl border transition-all cursor-pointer ${selectedRobot === (robot.id.includes('GROUND') ? 'GROUND_01' : 'AQUA_01') ? 'bg-emerald-500/10 border-emerald-500/40' : 'bg-slate-50 dark:bg-black/20 border-slate-200 dark:border-white/5 hover:border-emerald-500/20'}`}
+                          >
+                             <div className="flex justify-between items-center mb-2">
+                                <span className="text-[10px] font-black text-slate-800 dark:text-white uppercase">{robot.id}</span>
+                                <div className={`w-1.5 h-1.5 rounded-full ${robot.status === t.online ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300 dark:bg-slate-700'}`}></div>
+                             </div>
+                             <div className="flex justify-between items-center">
+                                <span className="text-[9px] text-slate-500 dark:text-slate-400 font-black uppercase">BATT: {robot.battery}</span>
+                                <span className="text-[9px] text-blue-600 dark:text-blue-400 font-black uppercase tracking-tighter">{robot.signal}</span>
+                             </div>
+                          </div>
+                       ))}
+                    </div>
+                 </div>
               </div>
             </>
           )}
@@ -555,28 +632,28 @@ const AsaaseView: React.FC = () => {
           {activeCategory === 'INTEL' && (
             <>
               {/* Column 1: Environment Telemetry */}
-              <div className="col-span-1 flex flex-col gap-6 h-fit animate-in slide-in-from-left-4 duration-500">
-                 <div className="bg-[#1a1d23] border border-white/5 p-8 rounded-[2rem] shadow-xl h-fit">
+              <div className="col-span-1 flex flex-col gap-6 h-fit animate-in slide-in-from-left-4 duration-500 text-slate-800 dark:text-white transition-colors">
+                 <div className="bg-white dark:bg-[#1a1d23] border border-slate-200 dark:border-white/5 p-8 rounded-[2rem] shadow-xl h-fit">
                     <div className="flex items-center justify-between mb-8">
                        <div className="flex items-center gap-3">
                           <Zap size={20} className="text-amber-500" />
-                          <span className="text-[12px] font-black text-slate-300 uppercase tracking-widest italic">{t.env_telemetry}</span>
+                          <span className="text-[12px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest italic">{t.env_telemetry}</span>
                        </div>
-                       <Activity size={18} className="text-slate-600" />
+                       <Activity size={18} className="text-slate-400 dark:text-slate-600" />
                     </div>
                     
                     <div className="space-y-6">
                        {[
-                         { label: t.soil_score, value: groundLatest[0]?.confidence_score?.toFixed(2) ?? '0.88', unit: 'CRIT', color: 'text-rose-500' },
-                         { label: t.mercury, value: '12.5', unit: 'SCAN', color: 'text-amber-400' },
-                         { label: t.turbidity, value: aquaLatest[0]?.turbidity_ntu?.toFixed(1) ?? '45.0', unit: 'STBL', color: 'text-emerald-400' },
-                         { label: t.ph_value, value: aquaLatest[0]?.ph_value?.toFixed(1) ?? '4.2', unit: 'ACID', color: 'text-rose-500' },
+                         { label: t.soil_score, value: groundLatest[0]?.confidence_score?.toFixed(2) ?? '0.88', unit: 'CRIT', color: 'text-rose-600 dark:text-rose-500' },
+                         { label: t.mercury, value: '12.5', unit: 'SCAN', color: 'text-amber-600 dark:text-amber-400' },
+                         { label: t.turbidity, value: aquaLatest[0]?.turbidity_ntu?.toFixed(1) ?? '45.0', unit: 'STBL', color: 'text-emerald-600 dark:text-emerald-400' },
+                         { label: t.ph_value, value: aquaLatest[0]?.ph_value?.toFixed(1) ?? '4.2', unit: 'ACID', color: 'text-rose-600 dark:text-rose-500' },
                        ].map((stat, i) => (
-                         <div key={i} className="flex items-center justify-between border-b border-white/5 pb-4">
-                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{stat.label}</span>
+                         <div key={i} className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-4 transition-colors">
+                            <span className="text-[10px] font-black text-slate-500 dark:text-slate-500 uppercase tracking-widest">{stat.label}</span>
                             <div className="text-right font-mono">
                                <span className={`text-2xl font-black italic tracking-tighter ${stat.color}`}>{stat.value}</span>
-                               <span className="text-[10px] font-black text-slate-700 ml-2 uppercase">{stat.unit}</span>
+                               <span className="text-[10px] font-black text-slate-400 dark:text-slate-700 ml-2 uppercase">{stat.unit}</span>
                             </div>
                          </div>
                        ))}
@@ -585,15 +662,15 @@ const AsaaseView: React.FC = () => {
               </div>
 
               {/* Column 2: Emergency Stream */}
-              <div className="col-span-1 flex flex-col gap-6 h-fit animate-in slide-in-from-bottom-4 duration-500 delay-75">
-                 <div className="bg-[#1a1d23] border border-rose-500/20 p-6 rounded-[2rem] shadow-xl h-fit relative group">
+              <div className="col-span-1 flex flex-col gap-6 h-fit animate-in slide-in-from-bottom-4 duration-500 delay-75 transition-colors">
+                 <div className="bg-white dark:bg-[#1a1d23] border border-rose-500/20 p-6 rounded-[2rem] shadow-xl h-fit relative group transition-colors">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/5 blur-[50px] group-hover:bg-rose-500/10 transition-colors"></div>
                     <div className="flex items-center justify-between mb-4 relative z-10">
                        <div className="flex items-center gap-3">
-                          <AlertCircle size={20} className="text-rose-500 animate-pulse" />
-                          <span className="text-[12px] font-black text-rose-500 uppercase tracking-widest italic">{t.emergency_stream}</span>
+                          <AlertCircle size={20} className="text-rose-600 dark:text-rose-500 animate-pulse" />
+                          <span className="text-[12px] font-black text-rose-600 dark:text-rose-500 uppercase tracking-widest italic">{t.emergency_stream}</span>
                        </div>
-                       <div className="px-3 py-1 bg-rose-500/10 border border-rose-500/20 rounded-lg text-[10px] font-black text-rose-500 uppercase animate-pulse">{t.live}</div>
+                       <div className="px-3 py-1 bg-rose-500/10 border border-rose-500/20 rounded-lg text-[10px] font-black text-rose-600 dark:text-rose-500 uppercase animate-pulse">{t.live}</div>
                     </div>
                     <div className="h-[400px] overflow-y-auto custom-scrollbar relative z-10 pr-2">
                        <AlertList 
@@ -604,14 +681,33 @@ const AsaaseView: React.FC = () => {
                        />
                     </div>
                  </div>
+                 
+                 {/* SYSTEM CONSOLE */}
+                 <div className="bg-slate-900/90 dark:bg-black/60 border border-slate-800 dark:border-white/5 p-6 rounded-[2rem] shadow-xl mt-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <Terminal size={18} className="text-slate-400" />
+                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic">REAL-TIME SYSTEM LOGS</span>
+                    </div>
+                    <div className="h-[150px] overflow-y-auto font-mono text-[9px] space-y-2 custom-scrollbar">
+                      {consoleLogs.length === 0 && <div className="text-slate-600 block italic">-- NO LOGS CAPTURED --</div>}
+                      {consoleLogs.map((log, idx) => (
+                        <div key={idx} className="flex gap-3">
+                          <span className="text-slate-600 dark:text-slate-600">[{new Date(log.ts).toLocaleTimeString()}]</span>
+                          <span className={log.type === 'warn' ? 'text-amber-500 dark:text-amber-400' : log.type === 'crit' ? 'text-rose-600 dark:text-rose-500' : 'text-emerald-500 dark:text-emerald-400'}>
+                            {log.msg}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
               </div>
 
               {/* Columns 3-4: GSM/SMS Log */}
-              <div className="col-span-2 flex flex-col gap-6 h-fit animate-in slide-in-from-right-4 duration-500 delay-150">
-                 <div className="bg-[#1a1d23] border border-blue-500/20 p-8 rounded-[3rem] shadow-xl h-fit">
+              <div className="col-span-2 flex flex-col gap-6 h-fit animate-in slide-in-from-right-4 duration-500 delay-150 transition-colors">
+                 <div className="bg-white dark:bg-[#1a1d23] border border-blue-500/20 p-8 rounded-[3rem] shadow-xl h-fit transition-colors">
                     <div className="flex items-center gap-4 mb-8">
-                       <MessageSquare size={24} className="text-blue-400" />
-                       <h4 className="text-[14px] font-black text-blue-400 uppercase tracking-widest italic">{t.gsm_log}</h4>
+                       <MessageSquare size={24} className="text-blue-600 dark:text-blue-400" />
+                       <h4 className="text-[14px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest italic">{t.gsm_log}</h4>
                     </div>
                     <div className="grid grid-cols-2 gap-4 font-mono">
                        {[
@@ -620,13 +716,13 @@ const AsaaseView: React.FC = () => {
                          { target: 'DISTRICT_CHIEF_V1', status: 'DONE', msg: 'Bilingual Remediation Report draft generated.', time: '13:02' },
                          { target: 'BASE_HUB_OPS', status: 'INFO', msg: 'Network parity maintained at 94% signal.', time: '13:10' }
                        ].map((log, i) => (
-                         <div key={i} className="bg-black/40 p-5 rounded-2xl border border-white/5 space-y-3 hover:bg-black/60 transition-all group">
+                         <div key={i} className="bg-slate-50 dark:bg-black/40 p-5 rounded-2xl border border-slate-200 dark:border-white/5 space-y-3 hover:bg-slate-100 dark:hover:bg-black/60 transition-all group cursor-default">
                             <div className="flex justify-between items-center text-[10px] font-black uppercase">
                                <span className="text-slate-500">{log.target}</span>
-                               <span className={log.status === 'SENT' ? 'text-emerald-400' : 'text-blue-400'}>[{log.status}]</span>
+                               <span className={log.status === 'SENT' ? 'text-emerald-600 dark:text-emerald-400' : 'text-blue-600 dark:text-blue-400'}>[{log.status}]</span>
                             </div>
-                            <p className="text-[11px] text-slate-300 italic leading-relaxed group-hover:text-white transition-colors">&gt; {log.msg}</p>
-                            <div className="text-right text-[9px] text-slate-600 font-bold">{log.time} GMT</div>
+                            <p className="text-[11px] text-slate-700 dark:text-slate-300 italic leading-relaxed group-hover:text-slate-900 dark:group-hover:text-white transition-colors">&gt; {log.msg}</p>
+                            <div className="text-right text-[9px] text-slate-600 dark:text-slate-600 font-bold">{log.time} GMT</div>
                          </div>
                        ))}
                     </div>
@@ -638,17 +734,17 @@ const AsaaseView: React.FC = () => {
           {/* ══════ COMMAND DECK ══════ */}
           {activeCategory === 'COMMAND' && (
             <>
-              <div className="col-span-3 flex flex-col gap-6 h-fit animate-in slide-in-from-left-4 duration-500">
-                 <div className="bg-[#1a1d23] border border-white/5 rounded-[3rem] shadow-2xl overflow-hidden h-fit">
-                    <div className="p-8 border-b border-white/5 bg-black/20">
+              <div className="col-span-3 flex flex-col gap-6 h-fit animate-in slide-in-from-left-4 duration-500 transition-colors">
+                 <div className="bg-white dark:bg-[#1a1d23] border border-slate-200 dark:border-white/5 rounded-[3rem] shadow-2xl overflow-hidden h-fit transition-all">
+                    <div className="p-8 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-black/20 transition-all">
                        <div className="flex items-center justify-between">
                           <div className="flex items-center gap-4">
-                             <Terminal size={24} className="text-emerald-400 animate-pulse" />
-                             <h4 className="text-[16px] font-black text-white uppercase tracking-[0.3em] italic">{t.unit_direct}</h4>
+                             <Terminal size={24} className="text-emerald-600 dark:text-emerald-400 animate-pulse" />
+                             <h4 className="text-[16px] font-black text-slate-800 dark:text-white uppercase tracking-[0.3em] italic">{t.unit_direct}</h4>
                           </div>
-                          <div className="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-xl border border-white/5">
+                          <div className="flex items-center gap-3 bg-slate-100 dark:bg-white/5 px-4 py-2 rounded-xl border border-slate-200 dark:border-white/5 transition-colors">
                               <div className={`w-2 h-2 rounded-full ${isSelectedOnline ? 'bg-emerald-500 animate-pulse shadow-[0_0_8px_#10b981]' : 'bg-rose-500 shadow-[0_0_8px_#f43f5e]'}`}></div>
-                              <span className={`text-[12px] font-black uppercase tracking-widest italic ${isSelectedOnline ? 'text-emerald-400 animate-pulse' : 'text-rose-500'}`}>
+                              <span className={`text-[12px] font-black uppercase tracking-widest italic ${isSelectedOnline ? 'text-emerald-600 dark:text-emerald-400 animate-pulse' : 'text-rose-600 dark:text-rose-500'}`}>
                                  {isSelectedOnline ? t.packet_stable : t.offline}
                               </span>
                            </div>
@@ -668,30 +764,32 @@ const AsaaseView: React.FC = () => {
                  </div>
               </div>
 
-              <div className="col-span-1 flex flex-col gap-6 h-fit animate-in slide-in-from-right-4 duration-500 delay-75">
-                 <div className="bg-[#1a1d23] border border-white/5 p-8 rounded-[2.5rem] shadow-xl h-fit">
-                    <div className="flex justify-between items-center mb-6">
-                       <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">{t.base} GH_01</span>
-                       <div className="px-2 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-md text-[10px] font-black text-emerald-400">{t.online}</div>
-                    </div>
-                    <div className="space-y-4">
-                       {[
-                         { label: t.signal_str, value: '94%', sub: 'GSM-LINK' },
-                         { label: t.batt_parity, value: `${avgBattery}%`, sub: 'FLEET-AVG' },
-                         { label: t.temp_range, value: '28°C', sub: 'NORMAL' },
-                         { label: t.radio_disp, value: 'OK', sub: 'STABLE' },
-                       ].map((item, i) => (
-                         <div key={i} className="bg-black/20 p-5 rounded-2xl border border-white/5 group hover:border-emerald-500/30 transition-all">
-                            <span className="text-[9px] font-black text-slate-500 uppercase block mb-2">{item.label}</span>
-                            <div className="flex items-end justify-between">
-                               <div className="text-emerald-400 font-black italic text-xl tracking-tighter">{item.value}</div>
-                               <div className="text-[8px] font-black text-slate-700 uppercase tracking-widest italic">{item.sub}</div>
-                            </div>
-                         </div>
-                       ))}
-                    </div>
-                 </div>
-              </div>
+               <div className="col-span-1 flex flex-col gap-6 h-fit animate-in slide-in-from-right-4 duration-500 delay-75 transition-colors">
+                  <div className="bg-white dark:bg-[#1a1d23] border border-slate-200 dark:border-white/5 p-8 rounded-[2.5rem] shadow-xl h-fit transition-colors">
+                     <div className="flex justify-between items-center mb-6">
+                        <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">{t.base} GH_01</span>
+                        <div className={`px-2 py-1 rounded-md text-[10px] font-black ${health?.status === 'OPERATIONAL' ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400'}`}>
+                           {health?.status || t.online}
+                        </div>
+                     </div>
+                     <div className="space-y-4">
+                        {[
+                          { label: 'CPU LOAD', value: `${health?.cpu || 0}%`, sub: 'CORE-UTIL' },
+                          { label: 'MEMORY', value: `${health?.ram || 0}%`, sub: 'SYSTEM-RES' },
+                          { label: 'LATENCY', value: `${health?.radio_latency_ms || 0}ms`, sub: 'RADIO-LINK' },
+                          { label: 'DISK', value: `${health?.disk || 0}%`, sub: 'STORAGE' },
+                        ].map((item, i) => (
+                          <div key={i} className="bg-slate-50 dark:bg-black/20 p-5 rounded-2xl border border-slate-200 dark:border-white/5 group hover:border-emerald-500/30 transition-all">
+                             <span className="text-[9px] font-black text-slate-500 uppercase block mb-2">{item.label}</span>
+                             <div className="flex items-end justify-between">
+                                <div className="text-emerald-600 dark:text-emerald-400 font-black italic text-xl tracking-tighter">{item.value}</div>
+                                <div className="text-[8px] font-black text-slate-700 dark:text-slate-700 uppercase tracking-widest italic">{item.sub}</div>
+                             </div>
+                          </div>
+                        ))}
+                     </div>
+                  </div>
+               </div>
             </>
           )}
 
@@ -708,7 +806,8 @@ const AsaaseView: React.FC = () => {
       <style>{`
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #10b981; }
       `}
       </style>

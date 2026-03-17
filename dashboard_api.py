@@ -13,11 +13,13 @@ from google import genai
 
 from src.energy.storage import EnergyDB, EnergyDBConfig
 from src.asaase import init_asaase
+from src.asaase.logger import app_logger, api_logger
 
 app = Flask(__name__, static_folder='dashboard/dist', static_url_path='/')
 CORS(app)  # Enable CORS for React development server
 
 # Initialize ASAASE Robot Control System
+app_logger.info("Initializing ASAASE Robot Control System...")
 init_asaase(app)
 
 DB_PATH = os.path.join(os.getcwd(), "runs", "data.db")
